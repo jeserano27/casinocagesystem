@@ -1,0 +1,74 @@
+{
+  "accounts": [
+    {
+      "id": "1",
+      "accountNumber": "BSM000",
+      "name": "BSM",
+      "agent": "BSM",
+      "balances": {
+        "cod": 20000,
+        "maxim": 200000,
+        "solaire": 50000,
+        "okada": 30000,
+        "other": 0
+      },
+      "mobile": "-",
+      "address": "-",
+      "email": "-",
+      "occupation": "-",
+      "telegram": "-",
+      "sof": "-",
+      "creditLine": 0,
+      "promo": "none",
+      "profilePicture": null,
+      "documents": [],
+      "remarksLog": []
+    },
+    {
+      "id": "2",
+      "accountNumber": "BETRNK000",
+      "name": "BETRNK",
+      "agent": "BETRNK",
+      "balances": {
+        "cod": 1000000,
+        "maxim": 500000,
+        "solaire": 100000,
+        "okada": 50000,
+        "other": 0
+      },
+      "mobile": "",
+      "address": "",
+      "email": "",
+      "occupation": "",
+      "telegram": "",
+      "sof": "",
+      "creditLine": 0,
+      "promo": "none",
+      "profilePicture": null,
+      "documents": [],
+      "remarksLog": []
+    }
+  ],
+  "locations": [
+    "cod",
+    "maxim",
+    "solaire",
+    "okada",
+    "other"
+  ],
+  "showCoreLocations": true,
+  "changeLog": [
+    "[14/11/2025, 12:51:16] Deposit (cash): BSM000 +10,000.00 to cod",
+    "[13/11/2025, 23:13:55] Withdrawal (cash): BSM000 -100,000.00 from cod",
+    "[13/11/2025, 22:11:56] Add Buy-In: BSM000 -50,000.00 from cod for game game-1763011699822",
+    "[13/11/2025, 20:06:55] Withdrawal (cash): BSM000 -20,000.00 from cod",
+    "[13/11/2025, 19:46:05] Account TX (VOID): BSM000 +10,000.00 to cod (Return Original Buy-in)",
+    "[13/11/2025, 19:17:37] Account TX: BSM000 +10,000.00 to cod (Void Game)",
+    "[13/11/2025, 17:39:24] Deposit (cash): BSM000 +20,000.00 to cod",
+    "[13/11/2025, 13:22:10] Account updated: BETRNK000 (BETRNK) (Agent: Agent Brown -> BETRNK)",
+    "[13/11/2025, 13:21:46] Account deleted: 1003-C (Robert Brown)",
+    "[13/11/2025, 13:21:41] Account updated: BSM000 (BSM) (Agent: Agent Smith -> BSM)",
+    "[13/11/2025, 13:21:01] Data reset to defaults"
+  ],
+  "_exportedAt": "2025-11-14T05:09:56.854Z"
+}
