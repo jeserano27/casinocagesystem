@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Casino Cage Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #1e1e2f;
+    }
+    /* Simple focus glow */
+    input:focus {
+      box-shadow: 0 0 0 3px #5b68a9;
+      outline: none;
+    }
+    
+    /* NEW: Modal Styles */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.7);
+      display: none; /* Toggled to flex */
+      align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    .modal {
+      background-color: #2e2e3e;
+      border-radius: 12px;
+      width: min(500px, 92vw);
+      padding: 24px; color: #fff;
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .close-btn { background: none; border: none; color: #fff; font-size: 28px; cursor: pointer; }
+    
+    /* NEW: Notification Toaster */
+    #notification {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        color: white;
+        font-size: 16px;
+        z-index: 1000;
+        transition: all 0.3s ease;
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    #notification.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    #notification.success { background-color: #4CAF50; }
+    #notification.error { background-color: #f44336; }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+  <main class="w-full max-w-4xl mx-auto">
+    <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl">
+      
+      <h1 class="text-3xl font-bold text-center text-white mb-8">
+        Casino Cage System
+      </h1>
+
+      <!-- Top Guest Entry Section -->
+      <section id="guest-entry" class="mb-10 p-6 bg-gray-900 rounded-xl">
+        <h2 class="text-xl font-semibold text-center text-gray-200 mb-4">Go to Guest Account</h2>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <input 
+            type="text" 
+            id="guestCode" 
+            placeholder="Enter Guest Code (e.g. BSM001)" 
+            class="flex-grow p-4 bg-gray-700 text-white border border-gray-600 rounded-lg text-lg focus:border-blue-500"
+            onkeypress="if(event.key==='Enter') goToGuestAccount()"
+          >
+          <button 
+            onclick="goToGuestAccount()"
+            class="p-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-lg transition-colors shadow-md"
+          >
+            Enter Guest Account
+          </button>
+        </div>
+      </section>
+
+      <!-- Main Navigation Grid -->
+      <section id="main-navigation">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          
+          <!-- Navigation Button -->
+          <button onclick="location.href='account2.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
+            Accounts
+          </button>
+          
+          <!-- Navigation Button -->
+          <button onclick="location.href='mainbank.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
+            Main Bank
+          </button>
+          
+          <!-- Navigation Button -->
+          <button onclick="location.href='forex.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
+            Forex
+          </button>
+          
+          <!-- Navigation Button -->
+          <button onclick="location.href='chipbank.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
+            Chip Bank
+          </button>
+          
+          <!-- Navigation Button -->
+          <button onclick="location.href='cagereport.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
+            Cage Report
+          </button>
+          
+          <!-- Navigation Button -->
+          <button onclick="location.href='Otherreceipt.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
+            Other Receipt
+          </button>
+          
+          <!-- Navigation Button -->
+          <button onclick="location.href='transactionhistory.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md col-span-2 md:col-span-1">
+            Transaction History
+          </button>
+
+          <!-- NEW: Settings Button -->
+          <button id="open-settings-btn" class="p-6 bg-gray-600 hover:bg-red-700 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
+            Settings
+          </button>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- NEW: Settings Modal -->
+  <div id="settings-modal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="text-2xl font-bold">System Settings</h2>
+            <button id="close-settings-btn" class="close-btn">&times;</button>
+        </div>
+        
+        <p class="mb-6 text-gray-300">Use these options to reset specific data logs. This action is permanent and cannot be undone.</p>
+        
+        <div class="flex flex-col gap-4">
+            <button id="reset-gamerecord-btn" class="p-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-lg transition-colors shadow-md">
+                Reset Game Records
+            </button>
+            <button id="reset-txhistory-btn" class="p-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-lg transition-colors shadow-md">
+                Reset Transaction History
+            </button>
+        </div>
+    </div>
+  </div>
+
+  <!-- Notification placeholder -->
+  <div id="notification"></div>
+
+  <script>
+    function goToGuestAccount() {
+      const guestCode = document.getElementById('guestCode').value.trim();
+      if (guestCode) {
+        // Points to account.html (for a specific guest)
+        window.location.href = `account.html?guest=${guestCode}`;
+      }
+    }
+    
+    // --- NEW: Settings Modal Logic ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const settingsModal = document.getElementById('settings-modal');
+        const openSettingsBtn = document.getElementById('open-settings-btn');
+        const closeSettingsBtn = document.getElementById('close-settings-btn');
+        const resetGameRecordBtn = document.getElementById('reset-gamerecord-btn');
+        const resetTxHistoryBtn = document.getElementById('reset-txhistory-btn');
+
+        const GAME_RECORD_KEY = 'gamerecord:v1';
+        const TRANSACTION_HISTORY_KEY = 'transaction-history:v1';
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = type === 'success' ? 'success' : 'error';
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function openModal() {
+            settingsModal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            settingsModal.style.display = 'none';
+        }
+
+        openSettingsBtn.addEventListener('click', openModal);
+        closeSettingsBtn.addEventListener('click', closeModal);
+
+        // Reset Game Records
+        resetGameRecordBtn.addEventListener('click', () => {
+            const confirmation = prompt('This will delete all game records. This cannot be undone.\n\nType "RESET" to confirm:');
+            if (confirmation === 'RESET') {
+                localStorage.removeItem(GAME_RECORD_KEY);
+                showNotification('Game Records have been reset!', 'success');
+                closeModal();
+            } else {
+                showNotification('Reset canceled.', 'error');
+            }
+        });
+
+        // Reset Transaction History
+        resetTxHistoryBtn.addEventListener('click', () => {
+            const confirmation = prompt('This will delete all transaction history. This cannot be undone.\n\nType "RESET" to confirm:');
+            if (confirmation === 'RESET') {
+                localStorage.removeItem(TRANSACTION_HISTORY_KEY);
+                showNotification('Transaction History has been reset!', 'success');
+                closeModal();
+            } else {
+                showNotification('Reset canceled.', 'error');
+            }
+        });
+    });
+  </script>
+</body>
+</html>

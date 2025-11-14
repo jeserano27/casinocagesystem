@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Balance Dashboard</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 10px; }
+        ::-webkit-scrollbar-track { background: #f3f4f6; }
+    </style>
+    <!-- Preload Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<!-- ... existing code ... -->
+<body class="bg-gray-100 text-gray-900 antialiased">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <!-- MODIFIED: Added flex container for title and button -->
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Account Balance Dashboard</h1>
+            <!-- NEW: Back to Dashboard Button -->
+            <button onclick="location.href='DASHBOARD.HTML'" class="rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                &larr; Back to Dashboard
+            </button>
+        </div>
+
+        <!-- Summary Section -->
+        <div id="summaryContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6"></div>
+<!-- ... existing code ... -->
+
+<body class="bg-gray-100 text-gray-900 antialiased">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Account Balance Dashboard</h1>
+
+        <!-- Summary Section -->
+        <div id="summaryContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6"></div>
+
+        <!-- Controls Section -->
+        <div class="bg-white p-4 rounded-lg shadow-md mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                
+                <!-- Filters -->
+                <div>
+                    <label for="filterAccount" class="block text-sm font-medium text-gray-700">Filter by Account No.</label>
+                    <input type="text" id="filterAccount" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="Enter account number...">
+                </div>
+                
+                <div>
+                    <label for="filterLocation" class="block text-sm font-medium text-gray-700">Filter by Location (has balance > 0)</label>
+                    <select id="filterLocation" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        <option value="all">All Locations</option>
+                    </select>
+                </div>
+
+                <!-- Add New Location -->
+                <div class="md:col-span-2 lg:col-span-1">
+                    <label for="newLocationName" class="block text-sm font-medium text-gray-700">Add New Location</label>
+                    <div class="mt-1 flex rounded-md shadow-sm">
+                        <input type="text" id="newLocationName" class="flex-1 block w-full min-w-0 rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="e.g., Resorts World">
+                        <button id="addLocationBtn" class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                            Add
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="mt-6 flex flex-wrap justify-between items-center gap-4">
+                <!-- Toggle -->
+                <div class="flex items-center">
+                    <input id="toggleCoreLocations" type="checkbox" checked class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <label for="toggleCoreLocations" class="ml-2 block text-sm font-medium text-gray-700">Show Core Locations</label>
+                </div>
+                
+                <!-- Existing Buttons -->
+                <div class="flex gap-3">
+                    <button id="manageLocationsBtn" class="rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                        Manage Locations
+                    </button>
+                    <button id="openAddAccountModalBtn" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Add New Account
+                    </button>
+                </div>
+
+                <!-- NEW: Data Actions -->
+                <div class="flex flex-wrap gap-3">
+                    <button id="exportBtn" class="rounded-md bg-white border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                        Export JSON
+                    </button>
+                    <label for="importInput" class="cursor-pointer rounded-md bg-white border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                        Import JSON
+                    </label>
+                    <input id="importInput" type="file" accept="application/json" class="hidden" />
+                    <button id="resetBtn" class="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                        Reset Data
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Table -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50" id="tableHeader"></thead>
+                    <tbody class="divide-y divide-gray-200 bg-white" id="tableBody"></tbody>
+                    <tfoot class="bg-gray-50 font-semibold" id="tableFooter"></tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Notification Toaster -->
+        <div id="notification" class="hidden fixed bottom-5 right-5 z-50 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg transition-all duration-300 transform translate-y-10 opacity-0"></div>
+    </div>
+
+    <!-- Activity Log Section -->
+    <div class="container mx-auto px-4 md:px-8 pb-8">
+        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Recent Activity</h2>
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="p-4 max-h-60 overflow-y-auto" id="activityLogContainer">
+                <ul class="space-y-2 text-sm text-gray-600" id="activityLogList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Account Modal -->
+    <div id="accountModal" class="hidden fixed inset-0 z-30 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center p-4">
+        <div class="relative mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+            <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4" id="modalTitle">Add New Account</h3>
+            <form id="accountForm">
+                <input type="hidden" id="accountId">
+                <div class="grid grid-cols-1 gap-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="accountNumber" class="block text-sm font-medium text-gray-700">Account Number</label>
+                            <input type="text" name="accountNumber" id="accountNumber" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="accountName" class="block text-sm font-medium text-gray-700">Name</label>
+                            <input type="text" name="accountName" id="accountName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        </div>
+                    </div>
+                    <!-- NEW: Agent Field -->
+                    <div>
+                        <label for="accountAgent" class="block text-sm font-medium text-gray-700">Agent</label>
+                        <input type="text" name="accountAgent" id="accountAgent" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="Enter agent name...">
+                    </div>
+                    
+                    <fieldset class="border-t border-gray-200 pt-4">
+                        <legend class="text-base font-medium text-gray-900">Balances</legend>
+                        <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4" id="locationInputs"></div>
+                    </fieldset>
+                </div>
+                
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" id="closeModalBtn" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">Cancel</button>
+                    <button type="submit" id="saveAccountBtn" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Save Account</button>
+                    <button type="button" id="deleteAccountBtn" class="hidden rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Manage Locations Modal -->
+    <div id="manageLocationsModal" class="hidden fixed inset-0 z-40 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center p-4">
+        <div class="relative mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+            <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Manage Locations</h3>
+            <div class="max-h-[60vh] overflow-y-auto pr-2">
+                <ul id="locationsList" class="space-y-2"></ul>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button type="button" id="closeManageModalBtn" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --------------------------
+            // PERSISTENCE: defaults + state
+            // --------------------------
+            const STORAGE_KEY = 'account-dashboard:v1';
+            const DEFAULT_LOCATIONS = ['cod', 'maxim', 'solaire', 'okada', 'other'];
+            const DEFAULT_ACCOUNTS = [
+                { id: '1', accountNumber: '1001-A', name: 'John Doe', agent: 'Agent Smith', balances: { cod: 150, maxim: 200,  solaire: 0,    okada: 50,  other: 10 } },
+                { id: '2', accountNumber: '1002-B', name: 'Jane Smith', agent: 'Agent Brown', balances: { cod: 0,   maxim: 500,  solaire: 1200, okada: 0,   other: 0  } },
+                { id: '3', accountNumber: '1003-C', name: 'Robert Brown', agent: 'Agent Smith', balances: { cod: 75,  maxim: 0,    solaire: 0,    okada: 300, other: 25 } }
+            ];
+
+            // --- STATE ---
+            const coreLocations = [...DEFAULT_LOCATIONS];
+            let locations = [...DEFAULT_LOCATIONS];
+            let accounts = JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS));
+            let filters = { accountNumber: '', location: 'all' };
+            let showCoreLocations = true;
+            let changeLog = [];
+
+            // --- SELECTORS ---
+            const tableHeader = document.getElementById('tableHeader');
+            const tableBody = document.getElementById('tableBody');
+            const tableFooter = document.getElementById('tableFooter');
+            const filterAccountInput = document.getElementById('filterAccount');
+            const filterLocationSelect = document.getElementById('filterLocation');
+            const addLocationBtn = document.getElementById('addLocationBtn');
+            const newLocationNameInput = document.getElementById('newLocationName');
+            const openAddAccountModalBtn = document.getElementById('openAddAccountModalBtn');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            const accountModal = document.getElementById('accountModal');
+            const accountForm = document.getElementById('accountForm');
+            const locationInputs = document.getElementById('locationInputs');
+            const modalTitle = document.getElementById('modalTitle');
+            const accountIdInput = document.getElementById('accountId');
+            const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+            const notification = document.getElementById('notification');
+            const summaryContainer = document.getElementById('summaryContainer');
+            const manageLocationsBtn = document.getElementById('manageLocationsBtn');
+            const manageLocationsModal = document.getElementById('manageLocationsModal');
+            const closeManageModalBtn = document.getElementById('closeManageModalBtn');
+            const locationsList = document.getElementById('locationsList');
+            const toggleCoreLocations = document.getElementById('toggleCoreLocations');
+            const activityLogList = document.getElementById('activityLogList');
+            const exportBtn = document.getElementById('exportBtn');
+            const importInput = document.getElementById('importInput');
+            const resetBtn = document.getElementById('resetBtn');
+
+            // --------------------------
+            // PERSISTENCE: helpers
+            // --------------------------
+            function saveState() {
+                try {
+                    const state = { accounts, locations, showCoreLocations, changeLog };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                } catch (e) {
+                    console.error('Save failed:', e);
+                    showNotification('Failed to save data (storage full?)');
+                }
+            }
+
+            function loadState() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    // If no saved state, save the default one
+                    if (!raw) {
+                        normalizeDataShape(); // Ensure defaults have agent field
+                        saveState(); // Save initial default state
+                        return;
+                    }
+                    const state = JSON.parse(raw);
+                    if (state && Array.isArray(state.accounts) && Array.isArray(state.locations)) {
+                        accounts = state.accounts;
+                        locations = state.locations;
+                        changeLog = state.changeLog || [];
+                        showCoreLocations = state.showCoreLocations ?? true;
+                        normalizeDataShape();
+                    }
+                } catch (e) {
+                    console.warn('No saved state or parse error:', e);
+                }
+            }
+
+            function normalizeDataShape() {
+                // Ensure each account has all current location keys and an agent key
+                accounts.forEach(acc => {
+                    acc.balances = acc.balances || {};
+                    if (!Object.prototype.hasOwnProperty.call(acc, 'agent')) {
+                        acc.agent = ''; // Add agent field if missing
+                    }
+                    locations.forEach(loc => {
+                        if (!Object.prototype.hasOwnProperty.call(acc.balances, loc)) {
+                            acc.balances[loc] = 0;
+                        }
+                    });
+                });
+            }
+
+            function exportJSON() {
+                const payload = { accounts, locations, showCoreLocations, changeLog, _exportedAt: new Date().toISOString() };
+                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'account-dashboard-data.json';
+                document.body.appendChild(a);
+                a.click();
+                URL.revokeObjectURL(url);
+                a.remove();
+                addLog('Data exported to JSON');
+            }
+
+            function importJSON(file) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    try {
+                        const data = JSON.parse(reader.result);
+                        if (!data || !Array.isArray(data.accounts) || !Array.isArray(data.locations)) {
+                            throw new Error('Invalid file format');
+                        }
+                        accounts = data.accounts;
+                        locations = data.locations;
+                        changeLog = data.changeLog || [];
+                        showCoreLocations = data.showCoreLocations ?? true;
+                        normalizeDataShape();
+                        saveState();
+                        render();
+                        showNotification('Data imported successfully!', 'success');
+                        addLog('Data imported from JSON');
+                    } catch (err) {
+                        console.error(err);
+                        showNotification('Import failed: invalid JSON format');
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            function resetData() {
+                const confirmation = prompt('Type RESET to restore default sample data. This will overwrite current data.');
+                if (confirmation !== 'RESET') {
+                    showNotification('Reset canceled.');
+                    return;
+                }
+                locations = [...DEFAULT_LOCATIONS];
+                accounts = JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS));
+                changeLog = [];
+                showCoreLocations = true;
+                normalizeDataShape(); // Add agent field to defaults
+                saveState();
+                render();
+                showNotification('Data reset to defaults.', 'success');
+                addLog('Data reset to defaults');
+            }
+
+            // Keep multiple tabs in sync
+            window.addEventListener('storage', (e) => {
+                if (e.key === STORAGE_KEY) {
+                    loadState();
+                    render();
+                }
+            });
+
+            // --------------------------
+            // RENDERING
+            // --------------------------
+            function getDisplayedLocations() {
+                if (showCoreLocations) return locations;
+                return locations.filter(loc => !coreLocations.includes(loc));
+            }
+
+            function render() {
+                // Keep toggle UI in sync with state
+                toggleCoreLocations.checked = showCoreLocations;
+
+                renderFilterOptions();
+                renderSummary();
+                renderTable();
+                renderModalLocationInputs();
+                renderActivityLog();
+            }
+
+            function renderFilterOptions() {
+                const displayedLocations = getDisplayedLocations();
+                const currentValue = filterLocationSelect.value;
+                filterLocationSelect.innerHTML = '<option value="all">All Locations</option>';
+                displayedLocations.forEach(loc => {
+                    const option = document.createElement('option');
+                    option.value = loc;
+                    option.textContent = loc.charAt(0).toUpperCase() + loc.slice(1);
+                    filterLocationSelect.appendChild(option);
+                });
+                if (displayedLocations.includes(currentValue) || currentValue === 'all') {
+                    filterLocationSelect.value = currentValue;
+                } else {
+                    filterLocationSelect.value = 'all';
+                    filters.location = 'all';
+                }
+            }
+
+            function renderSummary() {
+                summaryContainer.innerHTML = '';
+                const displayedLocations = getDisplayedLocations();
+
+                const locationTotals = {};
+                locations.forEach(loc => locationTotals[loc] = 0);
+                let grandTotal = 0;
+
+                accounts.forEach(acc => {
+                    locations.forEach(loc => {
+                        const balance = acc.balances[loc] || 0;
+                        locationTotals[loc] += balance;
+                        grandTotal += balance;
+                    });
+                });
+
+                // Total card
+                const totalCard = document.createElement('div');
+                totalCard.className = 'bg-blue-600 text-white p-4 rounded-lg shadow-md col-span-2';
+                const totalTitle = document.createElement('div');
+                totalTitle.className = 'text-sm font-medium text-blue-100 uppercase tracking-wider';
+                totalTitle.textContent = 'Total Guest Balance';
+                const totalAmount = document.createElement('div');
+                totalAmount.className = 'text-2xl font-bold mt-1';
+                totalAmount.textContent = formatCurrency(grandTotal);
+                totalCard.appendChild(totalTitle);
+                totalCard.appendChild(totalAmount);
+                summaryContainer.appendChild(totalCard);
+
+                // Per-location cards
+                displayedLocations.forEach(loc => {
+                    const total = locationTotals[loc];
+                    const card = document.createElement('div');
+                    card.className = 'bg-white p-4 rounded-lg shadow-md';
+                    const title = document.createElement('div');
+                    title.className = 'text-sm font-medium text-gray-500 uppercase tracking-wider';
+                    title.textContent = loc.charAt(0).toUpperCase() + loc.slice(1);
+                    const amount = document.createElement('div');
+                    amount.className = 'text-2xl font-bold text-gray-800 mt-1';
+                    amount.textContent = formatCurrency(total);
+                    card.appendChild(title);
+                    card.appendChild(amount);
+                    summaryContainer.appendChild(card);
+                });
+            }
+
+            function renderTable() {
+                renderTableHeader();
+                renderTableBody();
+                renderTableFooter();
+            }
+
+            function renderTableHeader() {
+                tableHeader.innerHTML = '';
+                const tr = document.createElement('tr');
+                const displayedLocations = getDisplayedLocations();
+                
+                let headers = ['Account No.', 'Name', 'Agent']; // Added Agent
+                displayedLocations.forEach(loc => headers.push(loc.charAt(0).toUpperCase() + loc.slice(1)));
+                headers.push('Total Amount');
+                headers.push('Actions');
+
+                headers.forEach(text => {
+                    const th = document.createElement('th');
+                    th.scope = 'col';
+                    th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                    th.textContent = text;
+                    tr.appendChild(th);
+                });
+                
+                tableHeader.appendChild(tr);
+            }
+
+            function getFilteredAccounts() {
+                return accounts.filter(acc => {
+                    const accNumMatch = acc.accountNumber.toLowerCase().includes(filters.accountNumber.toLowerCase());
+                    let locMatch = true;
+                    if (filters.location !== 'all') {
+                        locMatch = acc.balances[filters.location] && acc.balances[filters.location] > 0;
+                    }
+                    return accNumMatch && locMatch;
+                });
+            }
+
+            function renderTableBody() {
+                tableBody.innerHTML = '';
+                const filteredAccounts = getFilteredAccounts();
+                const displayedLocations = getDisplayedLocations();
+
+                if (filteredAccounts.length === 0) {
+                    const tr = document.createElement('tr');
+                    const td = document.createElement('td');
+                    td.colSpan = displayedLocations.length + 5; // +5 for Account, Name, Agent, Total, Actions
+                    td.className = 'px-6 py-4 text-center text-gray-500';
+                    td.textContent = 'No accounts found matching your criteria.';
+                    tr.appendChild(td);
+                    tableBody.appendChild(tr);
+                    return;
+                }
+
+                filteredAccounts.forEach(acc => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-50';
+                    
+                    let rowTotal = 0;
+                    locations.forEach(loc => { rowTotal += acc.balances[loc] || 0; });
+                    
+                    // Account Number
+                    let td = document.createElement('td');
+                    td.className = 'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900';
+                    td.textContent = acc.accountNumber;
+                    tr.appendChild(td);
+
+                    // Name
+                    td = document.createElement('td');
+                    td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                    td.textContent = acc.name;
+                    tr.appendChild(td);
+                    
+                    // Agent
+                    td = document.createElement('td');
+                    td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                    td.textContent = acc.agent || 'N/A'; // Show N/A if no agent
+                    tr.appendChild(td);
+
+                    // Dynamic Location Balances
+                    displayedLocations.forEach(loc => {
+                        const balance = acc.balances[loc] || 0;
+                        td = document.createElement('td');
+                        td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                        td.textContent = formatCurrency(balance);
+                        tr.appendChild(td);
+                    });
+
+                    // Total Amount
+                    td = document.createElement('td');
+                    td.className = 'px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-700';
+                    td.textContent = formatCurrency(rowTotal);
+                    tr.appendChild(td);
+
+                    // Actions
+                    td = document.createElement('td');
+                    td.className = 'px-6 py-4 whitespace-nowrap text-right text-sm font-medium';
+                    const editButton = document.createElement('button');
+                    editButton.textContent = 'Edit';
+                    editButton.className = 'text-blue-600 hover:text-blue-900';
+                    editButton.onclick = () => openEditModal(acc.id);
+                    td.appendChild(editButton);
+                    tr.appendChild(td);
+
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            function renderTableFooter() {
+                tableFooter.innerHTML = '';
+                const tr = document.createElement('tr');
+                const displayedLocations = getDisplayedLocations();
+                
+                let grandTotal = 0;
+                const locationTotals = {};
+                locations.forEach(loc => locationTotals[loc] = 0);
+
+                const filteredAccounts = getFilteredAccounts();
+                filteredAccounts.forEach(acc => {
+                    locations.forEach(loc => {
+                        const balance = acc.balances[loc] || 0;
+                        locationTotals[loc] += balance;
+                        grandTotal += balance;
+                    });
+                });
+
+                // "Totals" label
+                let td = document.createElement('td');
+                td.className = 'px-6 py-3 text-left text-sm font-bold text-gray-700 uppercase';
+                td.colSpan = 3; // For Account, Name, Agent
+                td.textContent = 'Totals';
+                tr.appendChild(td);
+
+                // Location totals
+                displayedLocations.forEach(loc => {
+                    td = document.createElement('td');
+                    td.className = 'px-6 py-3 text-left text-sm font-semibold text-gray-700';
+                    td.textContent = formatCurrency(locationTotals[loc]);
+                    tr.appendChild(td);
+                });
+
+                // Grand total
+                td = document.createElement('td');
+                td.className = 'px-6 py-3 text-left text-sm font-bold text-gray-900';
+                td.textContent = formatCurrency(grandTotal);
+                tr.appendChild(td);
+
+                // Empty cell for Actions column
+                td = document.createElement('td');
+                td.className = 'px-6 py-3';
+                tr.appendChild(td);
+
+                tableFooter.appendChild(tr);
+            }
+
+            function renderModalLocationInputs() {
+                locationInputs.innerHTML = '';
+                locations.forEach(loc => {
+                    const div = document.createElement('div');
+                    const label = document.createElement('label');
+                    label.htmlFor = `loc_${loc}`;
+                    label.className = 'block text-sm font-medium text-gray-700';
+                    label.textContent = loc.charAt(0).toUpperCase() + loc.slice(1);
+                    
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.id = `loc_${loc}`;
+                    input.name = `loc_${loc}`;
+                    input.className = 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm';
+                    input.placeholder = '0.00';
+                    input.step = '0.01';
+                    input.min = '0';
+                    
+                    div.appendChild(label);
+                    div.appendChild(input);
+                    locationInputs.appendChild(div);
+                });
+            }
+            
+            // --------------------------
+            // ACTIONS (mutating state)
+            // --------------------------
+            function handleAddLocation() {
+                const newLocation = newLocationNameInput.value.trim().toLowerCase();
+                if (!newLocation) { showNotification('Location name cannot be empty.'); return; }
+                if (locations.includes(newLocation)) { showNotification('Location already exists.'); return; }
+
+                locations.push(newLocation);
+                accounts.forEach(acc => {
+                    if (!acc.balances.hasOwnProperty(newLocation)) acc.balances[newLocation] = 0;
+                });
+
+                newLocationNameInput.value = '';
+                saveState();
+                render();
+                showNotification(`Location "${newLocation}" added!`, 'success');
+                addLog(`Location added: ${newLocation}`);
+            }
+
+            function openAddModal() {
+                accountForm.reset();
+                accountIdInput.value = '';
+                modalTitle.textContent = 'Add New Account';
+                deleteAccountBtn.classList.add('hidden');
+                renderModalLocationInputs();
+                accountModal.classList.remove('hidden');
+            }
+
+            function openEditModal(id) {
+                const account = accounts.find(acc => acc.id === id);
+                if (!account) return;
+
+                accountIdInput.value = account.id;
+                document.getElementById('accountNumber').value = account.accountNumber;
+                document.getElementById('accountName').value = account.name;
+                document.getElementById('accountAgent').value = account.agent || ''; // Set agent
+                
+                renderModalLocationInputs();
+                locations.forEach(loc => {
+                    const input = document.getElementById(`loc_${loc}`);
+                    if (input) input.value = account.balances[loc] ?? 0;
+                });
+
+                modalTitle.textContent = 'Edit Account';
+                deleteAccountBtn.classList.remove('hidden');
+                accountModal.classList.remove('hidden');
+            }
+
+            function closeModal() {
+                accountModal.classList.add('hidden');
+                accountForm.reset();
+                accountIdInput.value = '';
+            }
+
+            function handleSaveAccount(e) {
+                e.preventDefault();
+                const id = accountIdInput.value;
+                const newBalances = {};
+                locations.forEach(loc => {
+                    const input = document.getElementById(`loc_${loc}`);
+                    newBalances[loc] = parseFloat(input.value) || 0;
+                });
+
+                const newAccount = {
+                    id: id || Date.now().toString(),
+                    accountNumber: document.getElementById('accountNumber').value.trim(),
+                    name: document.getElementById('accountName').value.trim(),
+                    agent: document.getElementById('accountAgent').value.trim(), // Get agent
+                    balances: newBalances
+                };
+
+                let logMessage = '';
+                if (id) {
+                    const index = accounts.findIndex(acc => acc.id === id);
+                    if (index !== -1) {
+                        const old = accounts[index];
+                        accounts[index] = newAccount;
+                        logMessage = `Account updated: ${newAccount.accountNumber} (${newAccount.name})`;
+                        if (old.agent !== newAccount.agent) logMessage += ` (Agent: ${old.agent || 'N/A'} -> ${newAccount.agent || 'N/A'})`;
+                    }
+                } else {
+                    accounts.push(newAccount);
+                    logMessage = `Account added: ${newAccount.accountNumber} (${newAccount.name}), Agent: ${newAccount.agent || 'N/A'}`;
+                }
+
+                closeModal();
+                saveState();
+                render();
+                
+                showNotification(id ? 'Account updated!' : 'Account added!', 'success');
+                addLog(logMessage);
+            }
+
+            function handleDeleteAccount() {
+                const id = accountIdInput.value;
+                if (!id) return;
+                const accountToDelete = accounts.find(acc => acc.id === id);
+                accounts = accounts.filter(acc => acc.id !== id);
+                closeModal();
+                saveState();
+                render();
+                showNotification('Account deleted.', 'success');
+                if (accountToDelete) addLog(`Account deleted: ${accountToDelete.accountNumber} (${accountToDelete.name})`);
+            }
+
+            function openManageLocationsModal() {
+                renderManageLocationsList();
+                manageLocationsModal.classList.remove('hidden');
+            }
+            function closeManageLocationsModal() {
+                manageLocationsModal.classList.add('hidden');
+            }
+
+            function renderManageLocationsList() {
+                locationsList.innerHTML = '';
+                if (locations.length === 0) {
+                    locationsList.innerHTML = '<p class="text-gray-500">No locations added yet.</p>';
+                    return;
+                }
+                locations.forEach(loc => {
+                    const isCore = coreLocations.includes(loc);
+                    const li = document.createElement('li');
+                    li.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-md';
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'text-sm font-medium text-gray-800';
+                    nameSpan.textContent = loc.charAt(0).toUpperCase() + loc.slice(1);
+                    if (isCore) {
+                        const coreBadge = document.createElement('span');
+                        coreBadge.className = 'ml-2 text-xs font-semibold text-gray-400';
+                        coreBadge.textContent = '(Core)';
+                        nameSpan.appendChild(coreBadge);
+                    }
+
+                    const buttonsDiv = document.createElement('div');
+                    buttonsDiv.className = 'flex gap-2';
+
+                    const editBtn = document.createElement('button');
+                    editBtn.textContent = 'Edit';
+                    editBtn.className = 'text-sm font-medium text-blue-600 hover:text-blue-900 disabled:text-gray-400 disabled:cursor-not-allowed';
+                    editBtn.disabled = isCore;
+                    editBtn.onclick = () => handleEditLocation(loc);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.className = 'text-sm font-medium text-red-600 hover:text-red-900 disabled:text-gray-400 disabled:cursor-not-allowed';
+                    deleteBtn.disabled = isCore;
+                    deleteBtn.onclick = () => handleDeleteLocation(loc);
+
+                    buttonsDiv.appendChild(editBtn);
+                    buttonsDiv.appendChild(deleteBtn);
+                    li.appendChild(nameSpan);
+                    li.appendChild(buttonsDiv);
+                    locationsList.appendChild(li);
+                });
+            }
+
+            function handleEditLocation(oldName) {
+                const newName = prompt(`Enter new name for "${oldName}":`, oldName);
+                if (!newName || newName.trim() === '' || newName === oldName) return;
+                const trimmedNewName = newName.trim().toLowerCase();
+                if (locations.includes(trimmedNewName)) { showNotification('Location name already exists.'); return; }
+                
+                const index = locations.indexOf(oldName);
+                if (index !== -1) locations[index] = trimmedNewName;
+
+                accounts.forEach(acc => {
+                    if (acc.balances.hasOwnProperty(oldName)) {
+                        acc.balances[trimmedNewName] = acc.balances[oldName];
+                        delete acc.balances[oldName];
+                    }
+                });
+
+                saveState();
+                render();
+                renderManageLocationsList();
+                showNotification('Location renamed successfully!', 'success');
+                addLog(`Location renamed: '${oldName}' to '${trimmedNewName}'`);
+            }
+
+            function handleDeleteLocation(locationName) {
+                const confirmation = prompt(`Type DELETE to confirm you want to delete "${locationName}". This is permanent and will remove all balances for this location.`);
+                if (confirmation !== 'DELETE') { showNotification('Delete action canceled.'); return; }
+
+                locations = locations.filter(loc => loc !== locationName);
+                accounts.forEach(acc => { if (acc.balances.hasOwnProperty(locationName)) delete acc.balances[locationName]; });
+
+                saveState();
+                render();
+                renderManageLocationsList();
+                showNotification('Location deleted successfully!', 'success');
+                addLog(`Location deleted: ${locationName}`);
+            }
+
+            // --------------------------
+            // LOGGING
+            // --------------------------
+            function addLog(message) {
+                const timestamp = new Date().toLocaleString();
+                const entry = `[${timestamp}] ${message}`;
+                changeLog.unshift(entry);
+                if (changeLog.length > 50) changeLog.pop();
+                renderActivityLog();
+                saveState(); // persist log updates
+            }
+
+            function renderActivityLog() {
+                activityLogList.innerHTML = '';
+                if (changeLog.length === 0) {
+                    const li = document.createElement('li');
+                    li.className = 'text-gray-400 italic';
+                    li.textContent = 'No recent activity.';
+                    activityLogList.appendChild(li);
+                    return;
+                }
+                changeLog.forEach(entry => {
+                    const li = document.createElement('li');
+                    li.className = 'border-b border-gray-100 pb-1';
+                    li.textContent = entry;
+                    activityLogList.appendChild(li);
+                });
+            }
+
+            // --------------------------
+            // UTILITIES
+            // --------------------------
+            function formatCurrency(amount) {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'decimal',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }).format(amount);
+            }
+
+            function showNotification(message, type = 'error') {
+                notification.textContent = message;
+                notification.classList.remove('bg-red-500', 'bg-green-500');
+                notification.classList.add(type === 'success' ? 'bg-green-500' : 'bg-red-500');
+                notification.classList.remove('hidden');
+                setTimeout(() => { notification.classList.remove('translate-y-10', 'opacity-0'); }, 10);
+                setTimeout(() => {
+                    notification.classList.add('translate-y-10', 'opacity-0');
+                    setTimeout(() => notification.classList.add('hidden'), 300);
+                }, 3000);
+            }
+
+            // --------------------------
+            // EVENT LISTENERS
+            // --------------------------
+            filterAccountInput.addEventListener('input', (e) => {
+                filters.accountNumber = e.target.value;
+                renderTable();
+            });
+
+            filterLocationSelect.addEventListener('change', (e) => {
+                filters.location = e.target.value;
+                renderTable();
+            });
+            
+            addLocationBtn.addEventListener('click', handleAddLocation);
+            openAddAccountModalBtn.addEventListener('click', openAddModal);
+            closeModalBtn.addEventListener('click', closeModal);
+            accountForm.addEventListener('submit', handleSaveAccount);
+            deleteAccountBtn.addEventListener('click', handleDeleteAccount);
+            manageLocationsBtn.addEventListener('click', openManageLocationsModal);
+            closeManageModalBtn.addEventListener('click', closeManageLocationsModal);
+
+            toggleCoreLocations.addEventListener('change', (e) => {
+                showCoreLocations = e.target.checked;
+                saveState();
+                render();
+            });
+
+            exportBtn.addEventListener('click', exportJSON);
+            importInput.addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (file) importJSON(file);
+                importInput.value = ''; // allow re-importing same file later
+            });
+            resetBtn.addEventListener('click', resetData);
+
+            // --------------------------
+            // INITIALIZE
+            // --------------------------
+            loadState();
+            render();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start Game (Buy-In)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1e1e2f;
+            color: white;
+        }
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            background-color: #2e2e3e;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+        .form-section {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        @media (min-width: 768px) {
+            .form-section {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .form-group label {
+            font-weight: 600;
+            color: #ccc;
+        }
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group select {
+            background: #444;
+            border: 1px solid #666;
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: #fff;
+            width: 100%;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #444;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .radio-label input {
+            display: none;
+        }
+        .radio-label .radio-custom {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid #999;
+            display: grid;
+            place-items: center;
+        }
+        .radio-label .radio-custom::after {
+            content: '';
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #3b82f6;
+            transform: scale(0);
+            transition: transform 0.2s;
+        }
+        .radio-label input:checked + .radio-custom {
+            border-color: #3b82f6;
+        }
+        .radio-label input:checked + .radio-custom::after {
+            transform: scale(1);
+        }
+        .radio-label:hover {
+            background: #555;
+        }
+        
+        .balance-display {
+            background: #3b3b4f;
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .balance-display div {
+            text-align: center;
+        }
+        .balance-display strong {
+            color: #aaa;
+            display: block;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .balance-display span {
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+        .balance-display .ending {
+            color: #f44336; /* Start game is a withdrawal, so show red */
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: 0;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        .btn-secondary {
+            background: #666;
+            color: #fff;
+        }
+        .btn-secondary:hover {
+            background: #777;
+        }
+        
+        /* Modal for confirmation */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.7);
+            display: none;
+            align-items: center; justify-content: center;
+            z-index: 1000;
+        }
+        .modal {
+            background-color: #2e2e3e;
+            border-radius: 12px;
+            width: min(800px, 92vw);
+            padding: 24px; color: #fff;
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px;
+        }
+        .close-btn { background: none; border: none; color: #fff; font-size: 28px; cursor: pointer; }
+        
+        .confirmation-grid {
+            background: #3b3b4f;
+            border-radius: 8px;
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.25rem;
+        }
+        .confirmation-item strong {
+            display: block;
+            color: #aaa;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .confirmation-item span {
+            font-size: 1.2em;
+            font-weight: 600;
+            word-wrap: break-word;
+        }
+        
+        /* Custom toggle switch */
+        .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #4b5563; transition: .4s; border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px;
+            background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #3b82f6; }
+        input:checked + .slider:before { transform: translateX(22px); }
+        
+        /* Notification Toaster */
+        #notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        #notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        #notification.success { background-color: #4CAF50; }
+        #notification.error { background-color: #f44336; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="container">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold">Start Game (Initial Buy-In)</h1>
+                <p class="text-gray-400">Guest: <span id="guest-name" class="font-bold text-gray-200">Loading...</span></p>
+            </div>
+            <button onclick="history.back()" class="btn btn-secondary">
+                &larr; Back to Account
+            </button>
+        </div>
+
+        <!-- Form -->
+        <form id="start-game-form">
+            <div class="form-section">
+                <!-- Column 1 -->
+                <div class="flex flex-col gap-6">
+                    <!-- Payment Type -->
+                    <div class="form-group">
+                        <label>Payment Type</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="payment-type" value="account" checked>
+                                <span class="radio-custom"></span>
+                                Withdrawal from Account
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="payment-type" value="marker">
+                                <span class="radio-custom"></span>
+                                Marker (Credit Line)
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="payment-type" value="forex">
+                                <span class="radio-custom"></span>
+                                Forex
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="payment-type" value="cash">
+                                <span class="radio-custom"></span>
+                                Cash
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="payment-type" value="cash-chips">
+                                <span class="radio-custom"></span>
+                                Cash Chips
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="payment-type" value="credit-card">
+                                <span class="radio-custom"></span>
+                                Credit Card
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Forex Options (Dynamic) -->
+                    <div class="form-group hidden" id="forex-options">
+                        <label for="forex-type">Forex Currency</label>
+                        <select id="forex-type">
+                            <option value="jpy">JPY</option>
+                            <option value="krw">KRW</option>
+                            <option value="cny">CNY</option>
+                            <option value="usd">USD</option>
+                            <option value="hkd">HKD</option>
+                        </select>
+                    </div>
+
+                    <!-- Amount -->
+                    <div class="form-group">
+                        <label for="amount">Amount (in PHP)</label>
+                        <input type="number" id="amount" placeholder="0.00" step="0.01" min="0" required>
+                    </div>
+
+                    <!-- Balance Display (Dynamic) -->
+                    <div class="form-group" id="balance-display-group">
+                        <label for="location">Location</label>
+                        <select id="location" required></select>
+                        <div class="balance-display mt-3">
+                            <div>
+                                <strong>Starting Balance</strong>
+                                <span id="balance-start">₱0.00</span>
+                            </div>
+                            <div>
+                                <strong>Ending Balance</strong>
+                                <span id="balance-end" class="ending">₱0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Column 2 -->
+                <div class="flex flex-col gap-6">
+                    <!-- Commission & Share -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-group">
+                            <label for="commission-rate">Commission Rate %</label>
+                            <input type="number" id="commission-rate" value="1.5" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label for="share-rate">Share Rate %</label>
+                            <input type="number" id="share-rate" value="47.5" step="0.1">
+                        </div>
+                    </div>
+
+                    <!-- Game Style -->
+                    <div class="form-group">
+                        <label for="game-style">Game Style</label>
+                        <select id="game-style">
+                            <option value="Live">Live</option>
+                            <option value="Plan x2">Plan x2</option>
+                            <option value="Yen Game">Yen Game</option>
+                            <option value="Telebet">Telebet</option>
+                            <option value="Other">Other (Add in Remarks)</option>
+                        </select>
+                    </div>
+
+                    <!-- TAG -->
+                    <div class="form-group">
+                        <label>TAG</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="tag" value="BSM" checked>
+                                <span class="radio-custom"></span>
+                                BSM
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="tag" value="BETRNK">
+                                <span class="radio-custom"></span>
+                                BETRNK
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="tag" value="add-new">
+                                <span class="radio-custom"></span>
+                                Add New...
+                            </label>
+                        </div>
+                        <input type="text" id="tag-new" placeholder="Enter new tag" class="mt-2 hidden">
+                    </div>
+
+                    <!-- T/L -->
+                    <div class="form-group">
+                        <label for="tl">T/L</label>
+                        <input type="text" id="tl" value="1M">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="mt-10 pt-6 border-t border-gray-600 text-right">
+                <button type="submit" class="btn btn-primary text-lg">
+                    Proceed to Confirmation &rarr;
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="text-3xl font-bold">Final Confirmation</h2>
+                <button type="button" class="close-btn" data-modal="confirmation-modal">&times;</button>
+            </div>
+            
+            <p class="text-gray-300 text-lg mb-6">Please confirm the following details are correct before starting the game.</p>
+            
+            <div class="confirmation-grid">
+                <div class="confirmation-item">
+                    <strong>Guest</strong>
+                    <span id="confirm-guest"></span>
+                </div>
+                <div class="confirmation-item">
+                    <strong>Payment Type</strong>
+                    <span id="confirm-payment"></span>
+                </div>
+                <div class="confirmation-item">
+                    <strong>Buy-In Amount</strong>
+                    <span id="confirm-amount" class="text-green-400"></span>
+                </div>
+                <div class="confirmation-item">
+                    <strong>Location</strong>
+                    <span id="confirm-location"></span>
+                </div>
+                <div class="confirmation-item">
+                    <strong>Game Style</strong>
+                    <span id="confirm-style"></span>
+                </div>
+                <div class="confirmation-item">
+                    <strong>T/L</strong>
+                    <span id="confirm-tl"></span>
+                </div>
+                <div class="confirmation-item">
+                    <strong>Commission %</strong>
+                    <span id="confirm-commission"></span>
+                </div>
+                <div class="confirmation-item">
+                    <strong>Share %</strong>
+                    <span id="confirm-share"></span>
+                </div>
+                <div class="confirmation-item">
+                    <strong>TAG</strong>
+                    <span id="confirm-tag"></span>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-gray-600 flex justify-end gap-4">
+                <button type="button" class="btn btn-secondary text-lg" data-modal="confirmation-modal">
+                    Cancel
+                </button>
+                <button type="button" id="confirm-ok-btn" class="btn btn-primary text-lg">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Telegram/Message Modal -->
+    <div id="message-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="text-3xl font-bold">Game Started</h2>
+                <button type="button" class="close-btn" data-modal="message-modal">&times;</button>
+            </div>
+            
+            <!-- This section is for the account withdrawal message -->
+            <div id="account-withdrawal-message" class="hidden">
+                <p class="text-gray-300 text-lg mb-4">
+                    Account withdrawal processed. The buy-in has been deducted from the guest's account.
+                    You can use the message below for notifications.
+                </p>
+                <!-- Toggles for Withdrawal Message -->
+                <div class="flex items-center justify-end gap-6 mb-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <span class="text-sm font-medium text-gray-300">Show Other Locations</span>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-other-locations" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <span class="text-sm font-medium text-gray-300">Show Outstanding Marker</span>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-marker" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="withdrawal-message-content">Guest Withdrawal Notification</label>
+                    <textarea id="withdrawal-message-content" rows="12" class="font-mono text-sm bg-gray-800 border-gray-600"></textarea>
+                </div>
+            </div>
+
+            <!-- This section is for ALL other payment types -->
+            <div id="standard-game-message" class="hidden">
+                <p class="text-gray-300 text-lg mb-4">
+                    The game has been recorded. You can use the message below for notifications.
+                </p>
+                <div class="form-group">
+                    <label for="telegram-message-content">Telegram Share Start Report</label>
+                    <textarea id="telegram-message-content" rows="12" class="font-mono text-sm bg-gray-800 border-gray-600"></textarea>
+                </div>
+            </div>
+            
+            <!-- Buttons are now universal -->
+            <div class="mt-8 pt-6 border-t border-gray-600 flex justify-between items-center gap-4">
+                <div class="flex gap-4">
+                    <!-- MODIFIED: Buttons renamed and functionality changed -->
+                    <button type="button" id="send-group-telegram-btn" class="btn btn-primary">Send to Company Group</button>
+                    <button type="button" id="send-guest-telegram-btn" class="btn btn-secondary">Send to Guest</button>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="location.href='gamerecord.html'">
+                    Go to Game Records
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification placeholder -->
+    <div id="notification"></div>
+
+    <script>
+    // --- Global State ---
+    const ACCOUNT_STORAGE_KEY = 'account-dashboard:v1';
+    const GAME_RECORD_KEY = 'gamerecord:v1';
+    const TRANSACTION_HISTORY_KEY = 'transaction-history:v1';
+    
+    let allAccounts = [];
+    let allLocations = [];
+    let currentAccount = null;
+    let formData = {}; // To store form data temporarily
+
+    // --- Utils ---
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency', currency: 'PHP', minimumFractionDigits: 2, maximumFractionDigits: 2
+        }).format(amount);
+    }
+    
+    function formatNumber(amount) {
+         return new Intl.NumberFormat('en-US', {
+            style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2
+        }).format(amount);
+    }
+
+    function showNotification(message, type = 'error') {
+        const notification = document.getElementById('notification');
+        notification.textContent = message;
+        notification.className = type === 'success' ? 'success' : 'error';
+        notification.classList.add('show');
+        setTimeout(() => { notification.classList.remove('show'); }, 3000);
+    }
+    
+    // --- NEW: Send to Telegram functions ---
+    function sendToTelegram(message) {
+        const encodedMessage = encodeURIComponent(message);
+        // Use the 'share' URL which is more robust
+        const url = `tg://share/url?text=${encodedMessage}`;
+        const newTab = window.open();
+        newTab.location.href = url;
+        
+        // Fallback timer
+        setTimeout(() => {
+            // If the tab is still open and focused, Telegram probably didn't open
+            if (newTab.document.hasFocus && !newTab.document.hidden) {
+                newTab.close();
+                showNotification('Could not open Telegram. Please copy the message manually.', 'error');
+                fallbackCopyToClipboard(message);
+            }
+        }, 1000);
+    }
+
+    function sendToTelegramGuest(message, telegramId) {
+        if (telegramId) {
+            const encodedMessage = encodeURIComponent(message);
+            // Use msg_url for direct messages
+            const url = `tg://msg_url?text=${encodedMessage}&to=${telegramId}`;
+            const newTab = window.open();
+            newTab.location.href = url;
+
+            // Fallback timer
+            setTimeout(() => {
+                if (newTab.document.hasFocus && !newTab.document.hidden) {
+                    newTab.close();
+                    sendToTelegram(message); // Fallback to general share
+                }
+            }, 1000);
+        } else {
+            // If no guest ID, just use the general share
+            sendToTelegram(message);
+        }
+    }
+
+    // NEW: Fallback copy function
+    function fallbackCopyToClipboard(text) {
+        try {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed'; // Make it invisible
+            textArea.style.left = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showNotification('Copied message to clipboard as a fallback!', 'success');
+        } catch (err) {
+            showNotification('Failed to copy. Please copy manually.');
+            console.error('Fallback copy failed', err);
+        }
+    }
+
+    // --- NEW: Universal saveTransaction function ---
+    function saveTransaction(txData) {
+        try {
+            const raw = localStorage.getItem(TRANSACTION_HISTORY_KEY);
+            const allTxs = raw ? JSON.parse(raw) : [];
+            
+            const newTx = {
+                id: `tx-${new Date().getTime()}`,
+                timestamp: new Date().toISOString(),
+                status: 'completed',
+                ...txData
+            };
+
+            allTxs.push(newTx);
+            localStorage.setItem(TRANSACTION_HISTORY_KEY, JSON.stringify(allTxs));
+            return true;
+        } catch (e) {
+            console.error('Failed to save transaction:', e);
+            showNotification('Error saving transaction log.');
+            return false;
+        }
+    }
+
+    // --- Data Functions ---
+    function loadData() {
+        try {
+            // Load Account Data
+            const raw = localStorage.getItem(ACCOUNT_STORAGE_KEY);
+            if (!raw) {
+                // MODIFIED: Handle missing data more gracefully
+                console.warn('Account data not found. Initializing empty state for this page.');
+                allAccounts = [];
+                allLocations = ['cod', 'maxim', 'solaire', 'okada', 'other']; // Default locations
+            } else {
+                const state = JSON.parse(raw);
+                allAccounts = state.accounts || [];
+                allLocations = state.locations || [];
+            }
+            
+            // Get guest from URL
+            const params = new URLSearchParams(window.location.search);
+            const guestCode = params.get('guest');
+            if (!guestCode) {
+                document.getElementById('guest-name').textContent = "Error: No guest specified";
+                showNotification('Error: No guest specified in URL.');
+                return false;
+            }
+
+            currentAccount = allAccounts.find(acc => acc.accountNumber.toLowerCase() === guestCode.toLowerCase());
+
+            if (!currentAccount) {
+                document.getElementById('guest-name').textContent = `Error: Guest ${guestCode} not found`;
+                showNotification(`Error: Guest ${guestCode} not found.`);
+                return false;
+            }
+            
+            // Ensure guest has balances object
+            if (!currentAccount.balances) {
+                currentAccount.balances = {};
+            }
+            
+            return true;
+
+        } catch (e) {
+            console.error("Failed to load state:", e);
+            showNotification('Error loading page data.');
+            return false;
+        }
+    }
+    
+    function saveAccountState() {
+        try {
+            const currentState = JSON.parse(localStorage.getItem(ACCOUNT_STORAGE_KEY) || '{}');
+            const accountIndex = allAccounts.findIndex(acc => acc.id === currentAccount.id);
+            if (accountIndex !== -1) {
+                allAccounts[accountIndex] = currentAccount;
+            }
+            
+            const newState = {
+                ...currentState,
+                accounts: allAccounts,
+                locations: allLocations 
+            };
+            
+            localStorage.setItem(ACCOUNT_STORAGE_KEY, JSON.stringify(newState));
+            return true;
+        } catch (e) {
+            console.error('Save failed:', e);
+            showNotification('Failed to save account data.');
+            return false;
+        }
+    }
+    
+    function saveGameRecord(gameData) {
+        try {
+            const raw = localStorage.getItem(GAME_RECORD_KEY);
+            const allGames = raw ? JSON.parse(raw) : [];
+            
+            const newGame = {
+                id: `game-${new Date().getTime()}`,
+                date: new Date().toISOString().slice(0, 10),
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                status: 'active',
+                cashout: 0,
+                winLose: 0,
+                rolling: 0,
+                commissionAmount: 0,
+                revenue: 0,
+                remarks: '',
+                ...gameData
+            };
+            
+            allGames.push(newGame);
+            localStorage.setItem(GAME_RECORD_KEY, JSON.stringify(allGames));
+            return true;
+        } catch (e) {
+            console.error('Failed to save game record:', e);
+            showNotification('Error saving game record.');
+            return false;
+        }
+    }
+
+    // --- Page Setup ---
+    function initializePage() {
+        if (!loadData()) return;
+
+        document.getElementById('guest-name').textContent = `${currentAccount.name} (${currentAccount.accountNumber})`;
+
+        // Populate location dropdown
+        const locationSelect = document.getElementById('location');
+        locationSelect.innerHTML = '';
+        allLocations.forEach(loc => {
+            const opt = document.createElement('option');
+            opt.value = loc;
+            opt.textContent = loc.charAt(0).toUpperCase() + loc.slice(1);
+            locationSelect.appendChild(opt);
+        });
+        
+        // Initial balance display update
+        updateBalanceDisplay();
+
+        // Bind events
+        document.getElementById('location').addEventListener('change', updateBalanceDisplay);
+        document.getElementById('amount').addEventListener('input', updateBalanceDisplay);
+        document.querySelector('input[name="payment-type"]').addEventListener('change', togglePaymentOptions);
+        document.querySelectorAll('input[name="payment-type"]').forEach(radio => {
+            radio.addEventListener('change', togglePaymentOptions);
+        });
+        document.getElementById('start-game-form').addEventListener('submit', handleFormSubmit);
+        document.getElementById('confirm-ok-btn').addEventListener('click', handleFinalConfirmation);
+        
+        document.querySelectorAll('.close-btn').forEach(btn => {
+            btn.addEventListener('click', () => closeModal(btn.dataset.modal));
+        });
+        
+        // TAG logic
+        document.querySelectorAll('input[name="tag"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const newTagInput = document.getElementById('tag-new');
+                if (e.target.value === 'add-new') {
+                    newTagInput.classList.remove('hidden');
+                } else {
+                    newTagInput.classList.add('hidden');
+                }
+            });
+        });
+        
+        // MODIFIED: Bind "Send" buttons
+        document.getElementById('send-group-telegram-btn').addEventListener('click', () => {
+            const msg = (formData.paymentType === 'account')
+                ? document.getElementById('withdrawal-message-content').value
+                : document.getElementById('telegram-message-content').value;
+            sendToTelegram(msg);
+        });
+        
+        document.getElementById('send-guest-telegram-btn').addEventListener('click', () => {
+            const telegramId = currentAccount ? (currentAccount.telegram || '').replace('@', '') : '';
+            // MODIFIED: Send the correct message based on payment type
+            const msg = (formData.paymentType === 'account')
+                ? document.getElementById('withdrawal-message-content').value
+                : document.getElementById('telegram-message-content').value;
+            sendToTelegramGuest(msg, telegramId);
+        });
+
+        // MODIFIED: Bind message toggle buttons
+        document.getElementById('toggle-other-locations').addEventListener('change', () => {
+            const withdrawalMsg = generateWithdrawalMessage(formData);
+            document.getElementById('withdrawal-message-content').value = withdrawalMsg;
+        });
+        document.getElementById('toggle-marker').addEventListener('change', () => {
+            const withdrawalMsg = generateWithdrawalMessage(formData);
+            document.getElementById('withdrawal-message-content').value = withdrawalMsg;
+        });
+    }
+
+    // --- Form Logic ---
+    function updateBalanceDisplay() {
+        const loc = document.getElementById('location').value;
+        const amount = parseFloat(document.getElementById('amount').value) || 0;
+        const startBalance = (currentAccount.balances[loc]) || 0;
+        
+        document.getElementById('balance-start').textContent = formatCurrency(startBalance);
+        document.getElementById('balance-end').textContent = formatCurrency(startBalance - amount);
+    }
+
+    function togglePaymentOptions() {
+        const paymentType = document.querySelector('input[name="payment-type"]:checked').value;
+        const forexGroup = document.getElementById('forex-options');
+        const balanceGroup = document.getElementById('balance-display-group');
+        
+        forexGroup.classList.toggle('hidden', paymentType !== 'forex');
+        balanceGroup.classList.toggle('hidden', paymentType !== 'account');
+    }
+    
+    function handleFormSubmit(e) {
+        e.preventDefault();
+        
+        const paymentType = document.querySelector('input[name="payment-type"]:checked').value;
+        const amount = parseFloat(document.getElementById('amount').value);
+        const location = document.getElementById('location').value;
+        
+        // Validation
+        if (!amount || amount <= 0) {
+            showNotification('Please enter a valid amount.');
+            return;
+        }
+        
+        if (paymentType === 'account') {
+            const startBalance = (currentAccount.balances[location]) || 0;
+            if (amount > startBalance) {
+                showNotification('Insufficient funds at this location.');
+                return;
+            }
+        }
+        
+        // Get TAG value
+        let tagValue = document.querySelector('input[name="tag"]:checked').value;
+        if (tagValue === 'add-new') {
+            tagValue = document.getElementById('tag-new').value.trim();
+            if (!tagValue) {
+                showNotification('Please enter a custom tag or select BSM/BETRNK.');
+                return;
+            }
+        }
+
+        // Store form data
+        formData = {
+            paymentType: paymentType,
+            forexType: document.getElementById('forex-type').value,
+            amount: amount,
+            location: location,
+            commissionRate: parseFloat(document.getElementById('commission-rate').value),
+            shareRate: parseFloat(document.getElementById('share-rate').value),
+            style: document.getElementById('game-style').value,
+            tag: tagValue,
+            tl: document.getElementById('tl').value,
+        };
+
+        // Populate and show confirmation modal
+        document.getElementById('confirm-guest').textContent = `${currentAccount.name} (${currentAccount.accountNumber})`;
+        document.getElementById('confirm-payment').textContent = formData.paymentType.charAt(0).toUpperCase() + formData.paymentType.slice(1) + (formData.paymentType === 'forex' ? ` (${formData.forexType.toUpperCase()})` : '');
+        document.getElementById('confirm-amount').textContent = formatCurrency(formData.amount);
+        document.getElementById('confirm-location').textContent = formData.location.charAt(0).toUpperCase() + formData.location.slice(1);
+        document.getElementById('confirm-style').textContent = formData.style;
+        document.getElementById('confirm-tl').textContent = formData.tl;
+        document.getElementById('confirm-commission').textContent = `${formData.commissionRate}%`;
+        document.getElementById('confirm-share').textContent = `${formData.shareRate}%`;
+        document.getElementById('confirm-tag').textContent = formData.tag;
+        
+        openModal('confirmation-modal');
+    }
+
+    // --- Final Confirmation & Data Processing ---
+    function handleFinalConfirmation() {
+        let accountUpdated = false;
+        
+        // 1. Process payment
+        if (formData.paymentType === 'account') {
+            const startBalance = currentAccount.balances[formData.location] || 0;
+            currentAccount.balances[formData.location] = startBalance - formData.amount;
+            
+            if (!saveAccountState()) {
+                showNotification('Error: Could not save account balance. Aborting.');
+                return;
+            }
+            accountUpdated = true;
+            
+            // NEW: Log to central transaction history
+            saveTransaction({
+                accountNo: currentAccount.accountNumber,
+                type: 'Game Buy-in',
+                amount: -formData.amount, // Negative for withdrawal
+                location: formData.location,
+                remarks: `Buy-in for ${formData.style} game`
+            });
+        }
+        
+        // 2. Save the game record
+        const gameData = {
+            accountNo: currentAccount.accountNumber,
+            accountName: currentAccount.name,
+            agent: currentAccount.agent,
+            paymentType: formData.paymentType,
+            capital: formData.amount,
+            style: formData.style,
+            location: formData.location,
+            tag: formData.tag,
+            commissionRate: formData.commissionRate,
+            revenueRateShare: formData.shareRate,
+            tl: formData.tl,
+        };
+        
+        if (!saveGameRecord(gameData)) {
+            showNotification('Error: Could not save game record. Aborting.');
+            // Rollback account debit if it happened
+            if (accountUpdated) {
+                currentAccount.balances[formData.location] += formData.amount;
+                saveAccountState();
+                
+                // Also log the reversal
+                saveTransaction({
+                    accountNo: currentAccount.accountNumber,
+                    type: 'Game Void', // Or "Rollback"
+                    amount: formData.amount,
+                    location: formData.location,
+                    remarks: `Rollback failed game start`
+                });
+            }
+            return;
+        }
+        
+        // 3. Show success / message modal
+        closeModal('confirmation-modal');
+        generateMessages(formData);
+        openModal('message-modal');
+    }
+    
+    // --- Message Generation ---
+    function generateMessages(data) {
+        // --- Telegram Message ---
+        const telegramMsg = generateTelegramMessage(data);
+        document.getElementById('telegram-message-content').value = telegramMsg;
+
+        // --- Account Withdrawal Message ---
+        const accountMsgGroup = document.getElementById('account-withdrawal-message');
+        const standardMsgGroup = document.getElementById('standard-game-message');
+        const sendGuestBtn = document.getElementById('send-guest-telegram-btn'); // MODIFIED
+
+        if (data.paymentType === 'account') {
+            const withdrawalMsg = generateWithdrawalMessage(data);
+            document.getElementById('withdrawal-message-content').value = withdrawalMsg;
+            
+            buildLocationToggles(data.location); // Build toggles
+            
+            accountMsgGroup.classList.remove('hidden');
+            standardMsgGroup.classList.add('hidden');
+            sendGuestBtn.classList.remove('hidden'); // MODIFIED
+        } else {
+            accountMsgGroup.classList.add('hidden');
+            standardMsgGroup.classList.remove('hidden');
+            sendGuestBtn.classList.remove('hidden'); // MODIFIED: Show for all types
+        }
+    }
+    
+    function generateTelegramMessage(data) {
+        const now = new Date();
+        const days = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
+        const day = days[now.getDay()];
+        const date = `${now.getMonth() + 1}月${now.getDate()}日 ${day}`;
+
+        const agent = currentAccount.agent || 'N/A';
+        
+        // MODIFIED: Matched your exact format
+        return `
+${date}
+シェアスタート報告
+ACCOUNT # : ${currentAccount.accountNumber}
+NAME : ${currentAccount.name}
+AGENT: ${agent}
+BUY IN:  ${formatNumber(data.amount)}
+STYLE: ${data.style}
+LOCATION: (${data.location.toUpperCase()})
+BETRNKSHARE:${data.shareRate}%
+R/C:${data.commissionRate}%
+T/L:${data.tl}
+        `.trim();
+    }
+    
+    function generateWithdrawalMessage(data) {
+        const now = new Date();
+        const ts = `${now.getMonth() + 1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const loc = data.location;
+        const locUpper = loc.toUpperCase();
+        
+        const endBalance = currentAccount.balances[loc]; // Balance *after* withdrawal
+        const startBalance = endBalance + data.amount; // Balance *before* withdrawal
+        
+        let otherBalances = '';
+        let grandTotal = endBalance;
+        
+        // Check toggles
+        const showOtherLocations = document.getElementById('toggle-other-locations').checked;
+        const showMarker = document.getElementById('toggle-marker').checked;
+        
+        if (showOtherLocations) {
+            allLocations.forEach(l => {
+                if (l === loc) return; // Skip the main location
+                const balance = currentAccount.balances[l] || 0;
+                otherBalances += `-${l.toUpperCase()} BALANCE: ${formatNumber(balance)}\n`;
+                grandTotal += balance;
+            });
+            if (otherBalances) {
+                otherBalances = " [Other Balance]\n" + otherBalances;
+            }
+        } else {
+            // Still need to calculate grand total
+            allLocations.forEach(l => {
+                if (l === loc) return;
+                grandTotal += (currentAccount.balances[l] || 0);
+            });
+        }
+        
+        // MODIFIED: Added marker line
+        let markerLine = '';
+        if (showMarker) {
+            markerLine = `-OUTSTANDING MARKER: ${formatNumber(currentAccount.creditLine || 0)}\n`;
+        }
+
+        // MODIFIED: Matched your exact format
+        return `
+☀️GOOD DAY PO! DEAR ${currentAccount.name} (${currentAccount.accountNumber}) ☀️
+
+【YOUR PREVIOUS BALANCE: ${formatNumber(startBalance)}】
+———————————————————————————
+● CASH WITHDRAWAL  -${formatNumber(data.amount)} (${ts})
+● BUY IN GAME ${data.style} #1  -${formatNumber(data.amount)} (${ts})
+———————————————————————————
+【TOTAL BALANCE: ${formatNumber(endBalance)}】
+-${locUpper} BALANCE:${formatNumber(endBalance)}
+${otherBalances.trim()}
+【GRAND TOTAL BALANCE: ${formatNumber(grandTotal)}】
+${markerLine.trim()}
+This is Betrnk ${locUpper}. ❤️Thank you po!
+        `.trim();
+    }
+    
+    function buildLocationToggles(mainLoc) {
+        const toggleContainer = document.getElementById('location-toggles');
+        if (!toggleContainer) return; // Guard clause
+        toggleContainer.innerHTML = '';
+        
+        allLocations.forEach(loc => {
+            if (loc === mainLoc) return; // Don't create a toggle for the main location
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex items-center';
+            
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.id = `toggle-${loc}`;
+            input.value = loc;
+            input.checked = true; // Default to checked
+            input.className = 'w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500';
+            
+            const label = document.createElement('label');
+            label.htmlFor = `toggle-${loc}`;
+            label.textContent = loc.charAt(0).toUpperCase() + loc.slice(1);
+            label.className = 'ml-2 text-sm font-medium text-gray-300';
+            
+            wrapper.appendChild(input);
+            wrapper.appendChild(label);
+            toggleContainer.appendChild(wrapper);
+            
+            // Add event listener to regenerate message
+            input.addEventListener('change', () => {
+                const withdrawalMsg = generateWithdrawalMessage(formData);
+                document.getElementById('withdrawal-message-content').value = withdrawalMsg;
+            });
+        });
+        
+        // Add marker toggle listener
+        const markerToggle = document.getElementById('toggle-marker');
+        if (markerToggle) {
+            markerToggle.addEventListener('change', () => {
+                const withdrawalMsg = generateWithdrawalMessage(formData);
+                document.getElementById('withdrawal-message-content').value = withdrawalMsg;
+            });
+        }
+    }
+
+    // --- Modal Helpers ---
+    function openModal(modalId) {
+        document.getElementById(modalId).style.display = 'flex';
+    }
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    // --- Initializer ---
+    document.addEventListener('DOMContentLoaded', initializePage);
+    </script>
+</body>
+</html>

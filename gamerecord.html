@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Records</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #1e1e2f; color: white; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 10px; }
+        ::-webkit-scrollbar-track { background: #333; }
+        
+        /* Table Styles - Force table to fit */
+        .table-fixed { table-layout: fixed; width: 100%; }
+        .table-fixed th, .table-fixed td {
+            padding: 8px 4px; /* Reduced padding further */
+            font-size: 0.65rem; /* Made font very small */
+            text-align: center; /* Center text */
+            word-wrap: break-word; /* Allow wrapping */
+            hyphens: auto; /* Break words if necessary */
+        }
+        .table-fixed th { 
+            background-color: #3b3b4f; 
+            font-weight: 600;
+        }
+        .table-fixed td { 
+            border-bottom: 1px solid #3b3b4f; 
+        }
+        .table-fixed tbody tr:nth-child(even) { background-color: #2e2e3e; }
+        .table-fixed tbody tr:nth-child(odd) { background-color: #2a2a3a; }
+        
+        /* --- NEW: Highlight style for auto-settle --- */
+        @keyframes highlight {
+            from { background-color: #3b82f6; }
+            to { background-color: transparent; }
+        }
+        .highlight-row {
+            animation: highlight 3s ease-out;
+        }
+        /* --- END NEW --- */
+
+
+        /* Status Badges */
+        .status-badge { padding: 3px 6px; border-radius: 999px; font-weight: 600; font-size: 0.6rem; line-height: 1; }
+        .status-active { background-color: #2a8a4a; color: #fff; }
+        .status-settled { background-color: #555; color: #ccc; }
+        .status-voided { background-color: #a83232; color: #fff; }
+
+        /* Action Buttons */
+        .action-btn { 
+            padding: 2px 4px; 
+            font-size: 0.6rem; 
+            border-radius: 4px; 
+            display: block; 
+            margin: 2px auto; 
+            width: 100%;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,.7);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal {
+            background-color: #2e2e3e; border-radius: 12px;
+            width: min(800px, 92vw); /* --- MODIFIED: Made modal wider --- */
+            padding: 24px; color: #fff;
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .close-btn { background: none; border: none; color: #fff; font-size: 28px; cursor: pointer; }
+        .form-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+        .form-row label { font-weight: bold; color: #ccc; }
+        .form-row input, .form-row select, .form-row textarea {
+            background: #444; border: 1px solid #666; border-radius: 6px; padding: 10px; color: #fff;
+        }
+        .form-row-inline { display: flex; align-items: center; gap: 10px; }
+        
+        /* --- NEW: Send Modal Styles --- */
+        .send-modal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .send-modal-section textarea {
+            width: 100%;
+            height: 400px;
+            font-family: monospace;
+            font-size: 12px;
+            background: #1e1e2f;
+        }
+        .send-modal-section button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn-send-guest { background-color: #6b7280; color: white; }
+        .btn-send-guest:hover { background-color: #4b5563; }
+        .btn-send-company { background-color: #3b82f6; color: white; }
+        .btn-send-company:hover { background-color: #2563eb; }
+        /* --- END NEW STYLES --- */
+
+
+        /* Notification */
+        #notification {
+            position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 8px;
+            color: white; font-size: 16px; z-index: 1000; transition: all 0.3s ease;
+            opacity: 0; transform: translateY(20px);
+        }
+        #notification.show { opacity: 1; transform: translateY(0); }
+        #notification.success { background-color: #4CAF50; }
+        #notification.error { background-color: #f44336; }
+
+        /* Controls Bar */
+        .controls-bar {
+            background-color: #2e2e3e;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        /* Pagination Styles */
+        .pagination-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background-color: #2e2e3e;
+            border-top: 1px solid #3b3b4f;
+            border-radius: 0 0 12px 12px;
+        }
+        .pagination-buttons {
+            display: flex;
+            gap: 4px;
+        }
+        .pagination-btn {
+            background-color: #444;
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .pagination-btn:hover:not(:disabled) {
+            background-color: #555;
+        }
+        .pagination-btn.active {
+            background-color: #3b82f6; /* blue-600 */
+            font-weight: bold;
+        }
+        .pagination-btn:disabled {
+            background-color: #3b3b4f;
+            color: #777;
+            cursor: not-allowed;
+        }
+        .pagination-info {
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-full mx-auto"> <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold">Game Records</h1>
+            <button id="back-button" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
+                &larr; Back to Account
+            </button>
+        </div>
+
+        <div class="controls-bar">
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <label for="filter-account-no" class="text-lg text-gray-200">Filter by Account:</label>
+                    <input type="text" id="filter-account-no" placeholder="Enter Account No..." class="bg-gray-700 text-white p-2 rounded-md border border-gray-600 text-sm">
+                    <button id="clear-filter-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-3 rounded-md text-sm">Show All</button>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <label for="items-per-page" class="text-sm text-gray-300">Show:</label>
+                    <select id="items-per-page" class="bg-gray-700 text-white text-sm rounded-md p-2 border border-gray-600">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="all">All</option>
+                    </select>
+                    <span class="text-sm text-gray-300">per page</span>
+                </div>
+            </div>
+
+            <button id="export-csv-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
+                Export Visible Data (CSV)
+            </button>
+        </div>
+
+        <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+            <div>
+                <table class="table-fixed w-full text-left"> <thead>
+                        <tr>
+                            <th class="w-[5%]">Actions</th>
+                            <th class="w-[5%]">Status</th>
+                            <th class="w-[6%]">Date & Time</th>
+                            <th class="w-[7%]">Account</th>
+                            <th class="w-[4%]">Agent</th>
+                            <th class="w-[5%]">Style</th>
+                            <th class="w-[6%]">Capital</th>
+                            <th class="w-[6%]">Cashout</th>
+                            <th class="w-[6%]">Win/Lose</th>
+                            <th class="w-[6%]">Rolling</th>
+                            <th class="w-[5%]">R/C Rate</th>
+                            <th class="w-[6%]">R/C Amt</th>
+                            <th class="w-[5%]">Share Rate</th>
+                            <th class="w-[6%]">Share Amt</th> <th class="w-[6%]">Revenue (Net)</th>
+                            <th class="w-[5%]">Location</th>
+                            <th class="w-[4%]">TAG</th>
+                            <th class="w-[4%]">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="game-record-body">
+                        </tbody>
+                </table>
+            </div>
+            <div id="pagination-controls" class="pagination-controls">
+                <span class="pagination-info">Showing 0-0 of 0</span>
+                <div class="pagination-buttons">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="advance-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="text-2xl font-bold">Record Advance Cashout</h2>
+                <button class="close-btn" data-modal="advance-modal">&times;</button>
+            </div>
+            <form id="advance-form">
+                <p class="mb-4">This will record an advance cashout but will NOT settle the game. The game will remain active.</p>
+                <div class="form-row">
+                    <label for="advance-amount">Advance Amount</label>
+                    <input type="number" id="advance-amount" placeholder="0.00" step="0.01" min="0" required>
+                </div>
+                <div class="form-row">
+                    <label for="advance-type">Type</label>
+                    <select id="advance-type">
+                        <option value="Cash Chip">Cash Chip (Counted as Win)</option>
+                        <option value="Non-Negotiable">Non-Negotiable (Deducted from Rolling)</option>
+                    </select>
+                </div>
+                <div class="text-right mt-6">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">
+                        Record Advance
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="settle-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="text-2xl font-bold">Settle Game</h2>
+                <button class="close-btn" data-modal="settle-modal">&times;</button>
+            </div>
+            <form id="settle-form">
+                <p class="mb-4">Enter the final cashout and rolling to settle this game. This action is final.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-row">
+                        <label for="settle-cashout-amount">Final Cashout Amount</label>
+                        <input type="number" id="settle-cashout-amount" placeholder="0.00" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-row">
+                        <label for="settle-rolling">Total Rolling</label>
+                        <input type="number" id="settle-rolling" placeholder="0.00" step="0.01" min="0" required>
+                    </div>
+                </div>
+
+                <hr class="border-gray-600 my-4">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-row">
+                        <label for="settle-cashout-dest">Pay Final Cashout To:</label>
+                        <select id="settle-cashout-dest">
+                            <option value="cash">Cash (No Account Change)</option>
+                            </select>
+                    </div>
+                    <div class="form-row">
+                        <label for="settle-rc-dest">Pay Rolling Commission To:</label>
+                        <select id="settle-rc-dest">
+                            <option value="cash">Cash (No Account Change)</option>
+                            </select>
+                    </div>
+                </div>
+                
+                <div class="text-right mt-6">
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg">
+                        Settle Game
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="send-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="text-2xl font-bold">Send Settlement Report</h2>
+                <button class="close-btn" data-modal="send-modal">&times;</button>
+            </div>
+            <div class="send-modal-grid">
+                <div class="send-modal-section">
+                    <label for="guest-message-content" class="form-row label">Guest Message (Editable)</label>
+                    <textarea id="guest-message-content"></textarea>
+                    <button id="send-guest-btn" class="btn-send-guest mt-2">Send to Guest</button>
+                </div>
+                <div class="send-modal-section">
+                    <label for="company-message-content" class="form-row label">Company Message (Editable)</label>
+                    <textarea id="company-message-content"></textarea>
+                    <button id="send-company-btn" class="btn-send-company mt-2">Send to Company Group</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="notification"></div>
+
+    <script>
+    // --- Global State ---
+    const GAME_RECORD_KEY = 'gamerecord:v1';
+    const ACCOUNT_STORAGE_KEY = 'account-dashboard:v1';
+    const MAINBANK_KEY = 'mainbank:v1'; 
+    const TRANSACTION_HISTORY_KEY = 'transaction-history:v1';
+
+    let allGameRecords = [];
+    let allAccounts = [];
+    let allLocations = [];
+    let mainBankData = {}; 
+    let currentModalGameId = null;
+    let urlGuestAccountNo = null; // NEW: Store the guest from URL
+    
+    // Pagination State
+    let currentPage = 1;
+    let itemsPerPage = 10;
+
+    // --- Utils ---
+    function formatNumber(amount) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2
+        }).format(amount);
+    }
+
+    function showNotification(message, type = 'error') {
+        const notification = document.getElementById('notification');
+        notification.textContent = message;
+        notification.className = type === 'success' ? 'success' : 'error';
+        notification.classList.add('show');
+        setTimeout(() => { notification.classList.remove('show'); }, 3000);
+    }
+
+    // --- DELETED addGlobalLog FUNCTION ---
+    // (This function was removed)
+
+    // --- NEW: Universal saveTransaction function ---
+    function saveTransaction(txData) {
+        try {
+            const raw = localStorage.getItem(TRANSACTION_HISTORY_KEY);
+            const allTxs = raw ? JSON.parse(raw) : [];
+            
+            const newTx = {
+                id: `tx-${new Date().getTime()}`,
+                timestamp: new Date().toISOString(),
+                status: 'completed',
+                ...txData
+            };
+
+            allTxs.push(newTx);
+            localStorage.setItem(TRANSACTION_HISTORY_KEY, JSON.stringify(allTxs));
+            return true;
+        } catch (e) {
+            console.error('Failed to save transaction:', e);
+            showNotification('Error saving transaction log.');
+            return false;
+        }
+    }
+
+    // --- NEW: Telegram/Clipboard Helper Functions ---
+    function sendToTelegram(message) {
+        const encodedMessage = encodeURIComponent(message);
+        const url = `tg://share/url?text=${encodedMessage}`;
+        const newTab = window.open();
+        newTab.location.href = url;
+        
+        setTimeout(() => {
+            if (newTab.document.hasFocus && !newTab.document.hidden) {
+                newTab.close();
+                showNotification('Could not open Telegram. Please copy the message manually.', 'error');
+                fallbackCopyToClipboard(message);
+            }
+        }, 1000);
+    }
+
+    function fallbackCopyToClipboard(text) {
+        try {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed'; 
+            textArea.style.left = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showNotification('Copied message to clipboard as a fallback!', 'success');
+        } catch (err) {
+            showNotification('Failed to copy. Please copy manually.');
+            console.error('Fallback copy failed', err);
+        }
+    }
+    // --- END: Telegram Helpers ---
+
+
+    // --- Data Functions ---
+    function loadData() {
+        try {
+            // Load Game Records
+            const rawGames = localStorage.getItem(GAME_RECORD_KEY);
+            allGameRecords = rawGames ? JSON.parse(rawGames) : [];
+
+            // Load Account Data
+            const rawAccounts = localStorage.getItem(ACCOUNT_STORAGE_KEY);
+            const accountData = rawAccounts ? JSON.parse(rawAccounts) : { accounts: [], locations: [] };
+            allAccounts = accountData.accounts || [];
+            allLocations = accountData.locations || [];
+
+            // Load Main Bank Data
+            const rawMainBank = localStorage.getItem(MAINBANK_KEY);
+            mainBankData = rawMainBank ? JSON.parse(rawMainBank) : { houseBalances: {}, activityLog: [] };
+            if (!mainBankData.houseBalances) mainBankData.houseBalances = {};
+            if (!mainBankData.activityLog) mainBankData.activityLog = [];
+
+            // Check for guest filter in URL
+            const params = new URLSearchParams(window.location.search);
+            urlGuestAccountNo = params.get('guest'); // Store this globally
+            const filterInput = document.getElementById('filter-account-no');
+            const backButton = document.getElementById('back-button');
+
+            if (urlGuestAccountNo) {
+                // Came from account.html, pre-fill the filter
+                filterInput.value = urlGuestAccountNo;
+                // Set back button to go to that guest's account
+                backButton.onclick = () => { location.href = `account.html?guest=${urlGuestAccountNo}`; };
+            } else {
+                // Came directly, set back button to go to dashboard
+                // **FIXED**: Removed line that changes button text
+                // backButton.textContent = '← Main Menu'; 
+                backButton.onclick = () => { location.href = 'DASHBOARD.HTML'; };
+            }
+            
+            itemsPerPage = document.getElementById('items-per-page').value;
+            currentPage = 1; 
+
+        } catch (e) {
+            console.error('Failed to load data:', e);
+            showNotification('Error loading data from storage.');
+        }
+    }
+
+    function saveGameRecords() {
+        try {
+            localStorage.setItem(GAME_RECORD_KEY, JSON.stringify(allGameRecords));
+            return true;
+        } catch (e) {
+            console.error('Failed to save game records:', e);
+            showNotification('Error saving game records.');
+            return false;
+        }
+    }
+    
+    // --- REPLACED saveAccountData FUNCTION ---
+    function saveAccountData(logMessage = null) {
+        try {
+            const raw = localStorage.getItem(ACCOUNT_STORAGE_KEY);
+            const state = raw ? JSON.parse(raw) : {};
+
+            // --- NEW LOGGING LOGIC ---
+            let updatedLog = state.changeLog || [];
+            if (logMessage) {
+                const ts = new Date().toLocaleString();
+                const msg = `[${ts}] ${logMessage}`;
+                updatedLog.unshift(msg);
+                updatedLog = updatedLog.slice(0, 50); // Prune log
+            }
+            // --- END NEW LOGIC ---
+
+            const newState = { 
+                ...state, 
+                accounts: allAccounts, 
+                locations: allLocations,
+                changeLog: updatedLog // <-- Save the updated log
+            };
+            localStorage.setItem(ACCOUNT_STORAGE_KEY, JSON.stringify(newState));
+            return true;
+        } catch (e) {
+            console.error('Failed to save account data:', e);
+            showNotification('Error saving account data.');
+            return false;
+        }
+    }
+
+    function saveMainBankData() {
+        try {
+            localStorage.setItem(MAINBANK_KEY, JSON.stringify(mainBankData));
+            return true;
+        } catch (e) {
+            console.error('Failed to save main bank data:', e);
+            showNotification('Error saving main bank data.');
+            return false;
+        }
+    }
+
+    // --- Table Rendering ---
+    function renderTable() {
+        const tbody = document.getElementById('game-record-body');
+        tbody.innerHTML = '';
+
+        const filterValue = document.getElementById('filter-account-no').value.trim().toLowerCase();
+        itemsPerPage = document.getElementById('items-per-page').value; 
+        
+        // 1. Get all filtered items
+        const recordsToDisplay = allGameRecords.filter(game => {
+            if (filterValue === '') {
+                return true; // Show all if filter is empty
+            }
+            // Check if game's account number *includes* the filter value
+            return game.accountNo.toLowerCase().includes(filterValue);
+        }).sort((a, b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time)); 
+
+        
+        // 2. Paginate the filtered items
+        const totalItems = recordsToDisplay.length;
+        const totalPages = itemsPerPage === 'all' ? 1 : Math.ceil(totalItems / itemsPerPage);
+        
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIndex = itemsPerPage === 'all' ? 0 : (currentPage - 1) * itemsPerPage;
+        const itemsToDisplayCount = (itemsPerPage === 'all') ? totalItems : parseInt(itemsPerPage);
+        const endIndex = Math.min(startIndex + itemsToDisplayCount, totalItems);
+        
+        const paginatedItems = itemsPerPage === 'all' ? recordsToDisplay : recordsToDisplay.slice(startIndex, endIndex);
+
+        if (paginatedItems.length === 0) {
+            // --- MODIFIED: Colspan changed from 17 to 18 ---
+            tbody.innerHTML = `<tr><td colspan="18" class="text-center py-8 text-gray-400">No game records found matching criteria.</td></tr>`;
+        } else {
+            paginatedItems.forEach(game => {
+                const tr = document.createElement('tr');
+                // --- NEW: Add ID to row ---
+                tr.id = `game-row-${game.id}`;
+                
+                let actions = '';
+                if (game.status === 'active') {
+                    actions = `
+                        <button onclick="openAdvanceModal('${game.id}')" class="bg-blue-600 hover:bg-blue-700 text-white p-1 rounded action-btn">Advance</button>
+                        <button onclick="openSettleModal('${game.id}')" class="bg-green-600 hover:bg-green-700 text-white p-1 rounded action-btn">Settle</button>
+                        <button onclick="voidGame('${game.id}')" class="bg-red-600 hover:bg-red-700 text-white p-1 rounded action-btn">Void</button>
+                    `;
+                } else if (game.status === 'settled') {
+                    actions = `
+                        <button onclick="voidSettledGame('${game.id}')" class="bg-red-600 hover:bg-red-700 text-white p-1 rounded action-btn">Void Settlement</button>
+                        <button onclick="openSendModal('${game.id}')" class="bg-blue-600 hover:bg-blue-700 text-white p-1 rounded action-btn mt-1">Send Report</button>
+                    `;
+                } else {
+                    actions = `<span>N/A</span>`;
+                }
+                
+                // --- MODIFIED: Added new <td> for Share Amt ---
+                tr.innerHTML = `
+                    <td>${actions}</td>
+                    <td><span class="status-badge status-${game.status}">${game.status.toUpperCase()}</span></td>
+                    <td>${game.date} <span class="text-gray-400 block">${game.time}</span></td>
+                    <td>${game.accountName} <span class="text-gray-400 block">(${game.accountNo})</span></td>
+                    <td>${game.agent || 'N/A'}</td>
+                    <td>${game.style}</td>
+                    <td>${formatNumber(game.capital)}</td>
+                    <td>${formatNumber(game.cashout)}</td>
+                    <td class="${game.winLose > 0 ? 'text-green-400' : (game.winLose < 0 ? 'text-red-400' : '')}">${formatNumber(game.winLose)}</td>
+                    <td>${formatNumber(game.rolling)}</td>
+                    <td>${game.commissionRate}%</td>
+                    <td>${formatNumber(game.commissionAmount)}</td>
+                    <td>${game.revenueRateShare}%</td>
+                    <td class="${(game.shareAmount || 0) > 0 ? 'text-green-400' : ((game.shareAmount || 0) < 0 ? 'text-red-400' : '')}">${formatNumber(game.shareAmount || 0)}</td>
+                    <td class="${game.revenue > 0 ? 'text-green-400' : (game.revenue < 0 ? 'text-red-400' : '')}">${formatNumber(game.revenue)}</td>
+                    <td>${game.location}</td>
+                    <td>${game.tag}</td>
+                    <td class="whitespace-normal">${game.remarks || 'N/A'}</td> `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        // 3. Render pagination controls
+        renderPagination(totalPages, totalItems, startIndex, endIndex);
+    }
+
+    // Pagination Rendering
+    function renderPagination(totalPages, totalItems, startIndex, endIndex) {
+        const controls = document.getElementById('pagination-controls');
+        const infoEl = controls.querySelector('.pagination-info');
+        const buttonsEl = controls.querySelector('.pagination-buttons');
+        buttonsEl.innerHTML = '';
+
+        if (totalItems === 0) {
+            infoEl.textContent = 'No records found';
+            return;
+        }
+
+        if (itemsPerPage === 'all') {
+            infoEl.textContent = `Showing all ${totalItems} records`;
+            return;
+        }
+        
+        infoEl.textContent = `Showing ${startIndex + 1}–${endIndex} of ${totalItems}`;
+
+        // Previous Button
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = '« Prev';
+        prevBtn.className = 'pagination-btn';
+        if (currentPage === 1) prevBtn.disabled = true;
+        prevBtn.addEventListener('click', () => {
+            currentPage--;
+            renderTable();
+        });
+        buttonsEl.appendChild(prevBtn);
+
+        // Page Number Buttons
+        const maxButtons = 7;
+        let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+        if (endPage - startPage + 1 < maxButtons) {
+            startPage = Math.max(1, endPage - maxButtons + 1);
+        }
+        
+        if (startPage > 1) {
+            buttonsEl.appendChild(createPageButton(1));
+            if (startPage > 2) buttonsEl.appendChild(createPageEllipsis());
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            buttonsEl.appendChild(createPageButton(i));
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) buttonsEl.appendChild(createPageEllipsis());
+            buttonsEl.appendChild(createPageButton(totalPages));
+        }
+
+        // Next Button
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = 'Next »';
+        nextBtn.className = 'pagination-btn';
+        if (currentPage === totalPages) nextBtn.disabled = true;
+        nextBtn.addEventListener('click', () => {
+            currentPage++;
+            renderTable();
+        });
+        buttonsEl.appendChild(nextBtn);
+    }
+    
+    function createPageButton(pageNum) {
+        const pageBtn = document.createElement('button');
+        pageBtn.textContent = pageNum;
+        pageBtn.className = 'pagination-btn';
+        if (pageNum === currentPage) pageBtn.classList.add('active');
+        pageBtn.addEventListener('click', () => {
+            currentPage = pageNum;
+            renderTable();
+        });
+        return pageBtn;
+    }
+
+    function createPageEllipsis() {
+        const ellipsis = document.createElement('span');
+        ellipsis.textContent = '...';
+        ellipsis.className = 'pagination-btn';
+        ellipsis.style.backgroundColor = 'transparent';
+        ellipsis.style.cursor = 'default';
+        return ellipsis;
+    }
+
+
+    // --- Advance Cashout ---
+    function openAdvanceModal(gameId) {
+        currentModalGameId = gameId;
+        document.getElementById('advance-form').reset();
+        openModal('advance-modal');
+    }
+
+    function handleAdvanceSubmit(e) {
+        e.preventDefault();
+        const game = allGameRecords.find(g => g.id === currentModalGameId);
+        if (!game) return;
+
+        const amount = parseFloat(document.getElementById('advance-amount').value);
+        const type = document.getElementById('advance-type').value;
+
+        if (type === 'Cash Chip') {
+            game.cashout += amount;
+        } else {
+            game.cashout += amount;
+            game.remarks = (game.remarks || '') + ` [Advance (NN): ${formatNumber(amount)}]`;
+        }
+
+        if (saveGameRecords()) {
+            showNotification('Advance recorded!', 'success');
+            // addGlobalLog(...) removed, not critical here
+            closeModal('advance-modal');
+            renderTable();
+        }
+    }
+
+    // --- Settle Game ---
+    function openSettleModal(gameId) {
+        currentModalGameId = gameId;
+        document.getElementById('settle-form').reset();
+        
+        const cashoutDest = document.getElementById('settle-cashout-dest');
+        const rcDest = document.getElementById('settle-rc-dest');
+        cashoutDest.innerHTML = '<option value="cash">Cash (No Account Change)</option>';
+        rcDest.innerHTML = '<option value="cash">Cash (No Account Change)</option>';
+
+        allLocations.forEach(loc => {
+            const option = `<option value="account-${loc}">Account (${loc.charAt(0).toUpperCase() + loc.slice(1)})</option>`;
+            cashoutDest.innerHTML += option;
+            rcDest.innerHTML += option;
+        });
+
+        openModal('settle-modal');
+    }
+
+    function handleSettleSubmit(e) {
+        e.preventDefault();
+        // --- MODIFIED ---
+        let logMessages = [];
+        // --- END MODIFICATION ---
+
+        const gameIndex = allGameRecords.findIndex(g => g.id === currentModalGameId);
+        if (gameIndex === -1) return;
+
+        const game = allGameRecords[gameIndex];
+
+        // --- 1. Get Form Data ---
+        const finalCashout = parseFloat(document.getElementById('settle-cashout-amount').value);
+        const totalRolling = parseFloat(document.getElementById('settle-rolling').value);
+        const cashoutDest = document.getElementById('settle-cashout-dest').value;
+        const rcDest = document.getElementById('settle-rc-dest').value;
+
+        // --- 2. Perform Calculations ---
+        game.cashout = finalCashout; 
+        game.rolling = totalRolling;
+        game.status = 'settled';
+        game.settlementInfo = {
+            cashoutDest: cashoutDest,
+            rcDest: rcDest
+        };
+        game.winLose = game.cashout - game.capital;
+        game.commissionAmount = game.rolling * (game.commissionRate / 100);
+
+        // --- 
+        // --- CORRECTED LOGIC (Based on your new definition) ---
+        // ---
+        // 1. Calculate Share Amount (Gross Share from W/L)
+        // (A player WIN is a loss for the house, so we use -)
+        game.shareAmount = -(game.winLose * (game.revenueRateShare / 100));
+        
+        // 2. Calculate Revenue (Net Revenue)
+        // (Gross Share - Commission)
+        game.revenue = game.shareAmount - game.commissionAmount;
+        // --- END CORRECTED LOGIC ---
+
+
+        // --- 3. Update Guest Account (if needed) ---
+        let didAccountUpdate = false;
+        const guestAccount = allAccounts.find(acc => acc.accountNumber === game.accountNo);
+
+        if (guestAccount) {
+            if (cashoutDest.startsWith('account-')) {
+                const loc = cashoutDest.replace('account-', '');
+                if (!guestAccount.balances) guestAccount.balances = {};
+                guestAccount.balances[loc] = (guestAccount.balances[loc] || 0) + game.cashout;
+                didAccountUpdate = true;
+                // --- MODIFIED ---
+                logMessages.push(`Account TX: ${guestAccount.accountNumber} +${formatNumber(game.cashout)} to ${loc} (Settle Cashout)`);
+                // --- END MODIFICATION ---
+                // NEW: Log to central transaction history
+                saveTransaction({
+                    accountNo: guestAccount.accountNumber,
+                    type: 'Game Settle',
+                    amount: game.cashout,
+                    location: loc,
+                    remarks: `Settle cashout for game ${game.id}`
+                });
+            }
+            if (rcDest.startsWith('account-')) {
+                const loc = rcDest.replace('account-', '');
+                if (!guestAccount.balances) guestAccount.balances = {};
+                guestAccount.balances[loc] = (guestAccount.balances[loc] || 0) + game.commissionAmount;
+                didAccountUpdate = true;
+                // --- MODIFIED ---
+                logMessages.push(`Account TX: ${guestAccount.accountNumber} +${formatNumber(game.commissionAmount)} to ${loc} (Settle R/C)`);
+                // --- END MODIFICATION ---
+                // NEW: Log to central transaction history
+                saveTransaction({
+                    accountNo: guestAccount.accountNumber,
+                    type: 'Game R/C',
+                    amount: game.commissionAmount,
+                    location: loc,
+                    remarks: `R/C payout for game ${game.id}`
+                });
+            }
+        }
+
+        // --- 4. Update Main Bank Balance ---
+        const loc = game.location;
+        if (!mainBankData.houseBalances) mainBankData.houseBalances = {};
+        
+        const houseStart = mainBankData.houseBalances[loc] || 0;
+        // This formula is now correct:
+        // houseStart + (money in) - (money out)
+        // + capital (from player)
+        // + revenue (house's net revenue, which includes the commission cost)
+        const houseEnd = houseStart + game.capital + game.revenue;
+        mainBankData.houseBalances[loc] = houseEnd;
+        
+        // --- 5. Add to main bank activity log ---
+        const ts = new Date().toLocaleString();
+        // This log needs to reflect the new formula
+        const logMsg = `[${ts}] Game Settle (${game.accountNo} @ ${loc}): +${formatNumber(game.capital)} (Cap) +${formatNumber(game.revenue)} (Net Revenue) = Net ${houseEnd - houseStart >= 0 ? '+' : ''}${formatNumber(houseEnd - houseStart)}`;
+        if (!mainBankData.activityLog) mainBankData.activityLog = []; 
+        mainBankData.activityLog.unshift(logMsg);
+        // --- MODIFIED: Add a separate log for the settlement itself ---
+        mainBankData.activityLog.unshift(`[${ts}] Game Settled: ${game.accountNo} @ ${game.location}. W/L: ${formatNumber(game.winLose)}`);
+        // --- END MODIFICATION ---
+        mainBankData.activityLog = mainBankData.activityLog.slice(0, 50);
+
+        // --- 6. Save All Data ---
+        let allSaved = true;
+        if (!saveGameRecords()) allSaved = false;
+        // --- MODIFIED ---
+        if (didAccountUpdate && !saveAccountData(logMessages.join(' | '))) allSaved = false; 
+        // --- END MODIFICATION ---
+        if (!saveMainBankData()) allSaved = false; 
+
+        if (allSaved) {
+            showNotification('Game Settled Successfully!', 'success');
+            // addGlobalLog(...) was removed
+            closeModal('settle-modal');
+            renderTable(); 
+        } else {
+            showNotification('Error: Could not save all data. Please check console.');
+        }
+    }
+
+    // --- Void Game ---
+    function voidGame(gameId) {
+        if (!confirm('Are you sure you want to void this ACTIVE game? This will return the buy-in to the guest account (if applicable) and cancel the game.')) {
+            return;
+        }
+
+        const gameIndex = allGameRecords.findIndex(g => g.id === gameId);
+        if (gameIndex === -1) return;
+        const game = allGameRecords[gameIndex];
+
+        if (game.paymentType === 'account') {
+            const guestAccount = allAccounts.find(acc => acc.accountNumber === game.accountNo);
+            if (guestAccount) {
+                const loc = game.location;
+                if (!guestAccount.balances) guestAccount.balances = {};
+                guestAccount.balances[loc] = (guestAccount.balances[loc] || 0) + game.capital; 
+                
+                // --- MODIFIED ---
+                const logMsg = `Account TX: ${guestAccount.accountNumber} +${formatNumber(game.capital)} to ${loc} (Void Game)`;
+                if (!saveAccountData(logMsg)) { // <-- Pass log message
+                    showNotification('Error: Could not return funds to guest account. Aborting void.');
+                    return;
+                }
+                // addGlobalLog(...) is now deleted
+                // --- END MODIFICATION ---
+
+                // NEW: Log to central transaction history
+                saveTransaction({
+                    accountNo: guestAccount.accountNumber,
+                    type: 'Game Void',
+                    amount: game.capital,
+                    location: loc,
+                    remarks: `Void game ${game.id}`
+                });
+            }
+        }
+        
+        game.status = 'voided';
+        game.remarks = (game.remarks || '') + ' [VOIDED]';
+        game.winLose = 0;
+        game.cashout = 0;
+        game.rolling = 0;
+        game.commissionAmount = 0;
+        game.shareAmount = 0; // --- MODIFIED: Zero out new field
+        game.revenue = 0;
+
+        if (saveGameRecords()) {
+            showNotification('Game voided successfully!', 'success');
+            // addGlobalLog(...) was removed
+            renderTable(); 
+        }
+    }
+
+    // --- Void SETTLED Game ---
+    function voidSettledGame(gameId) {
+        if (!confirm('Are you sure you want to VOID this SETTLED game? This will reverse all transactions (guest account, house balance) associated with the settlement.')) {
+            return;
+        }
+
+        // --- MODIFIED ---
+        let logMessages = [];
+        // --- END MODIFICATION ---
+
+        const gameIndex = allGameRecords.findIndex(g => g.id === gameId);
+        if (gameIndex === -1) return;
+        const game = allGameRecords[gameIndex];
+        
+        if (game.status !== 'settled') {
+            showNotification('This game is not settled. Use the regular void button.', 'error');
+            return;
+        }
+
+        let didAccountUpdate = false;
+        const guestAccount = allAccounts.find(acc => acc.accountNumber === game.accountNo);
+        const settlement = game.settlementInfo || {}; 
+        
+        // --- 1. Reverse Guest Account Payments ---
+        if (guestAccount) {
+            if (settlement.cashoutDest && settlement.cashoutDest.startsWith('account-')) {
+                const loc = settlement.cashoutDest.replace('account-', '');
+                guestAccount.balances[loc] = (guestAccount.balances[loc] || 0) - game.cashout;
+                didAccountUpdate = true;
+                // --- MODIFIED ---
+                logMessages.push(`Account TX (VOID): ${guestAccount.accountNumber} -${formatNumber(game.cashout)} from ${loc} (Reverse Settle Cashout)`);
+                // --- END MODIFICATION ---
+                // NEW: Log to central transaction history
+                saveTransaction({
+                    accountNo: guestAccount.accountNumber,
+                    type: 'Game Void',
+                    amount: -game.cashout,
+                    location: loc,
+                    remarks: `Void Settle Cashout for game ${game.id}`
+                });
+            }
+            if (settlement.rcDest && settlement.rcDest.startsWith('account-')) {
+                const loc = settlement.rcDest.replace('account-', '');
+                guestAccount.balances[loc] = (guestAccount.balances[loc] || 0) - game.commissionAmount;
+                didAccountUpdate = true;
+                // --- MODIFIED ---
+                logMessages.push(`Account TX (VOID): ${guestAccount.accountNumber} -${formatNumber(game.commissionAmount)} from ${loc} (Reverse Settle R/C)`);
+                // --- END MODIFICATION ---
+                // NEW: Log to central transaction history
+                saveTransaction({
+                    accountNo: guestAccount.accountNumber,
+                    type: 'Game Void',
+                    amount: -game.commissionAmount,
+                    location: loc,
+                    remarks: `Void Settle R/C for game ${game.id}`
+                });
+            }
+        }
+        
+        // --- 2. ALSO Return original Buy-In if it was from account ---
+        if (guestAccount && game.paymentType === 'account') {
+            const loc = game.location; 
+            guestAccount.balances[loc] = (guestAccount.balances[loc] || 0) + game.capital; 
+            didAccountUpdate = true;
+            // --- MODIFIED ---
+            logMessages.push(`Account TX (VOID): ${guestAccount.accountNumber} +${formatNumber(game.capital)} to ${loc} (Return Original Buy-in)`);
+            // --- END MODIFICATION ---
+            // NEW: Log to central transaction history
+            saveTransaction({
+                accountNo: guestAccount.accountNumber,
+                type: 'Game Void',
+                amount: game.capital,
+                location: loc,
+                remarks: `Void Settle (Return Buy-in) for game ${game.id}`
+            });
+        }
+
+        // --- 3. Reverse Main Bank Balance ---
+        const loc = game.location;
+        const houseStart = mainBankData.houseBalances[loc] || 0;
+        // --- MODIFICATION: This formula must also be reversed ---
+        const houseEnd = houseStart - game.capital - game.revenue;
+        mainBankData.houseBalances[loc] = houseEnd;
+
+        // --- 4. Add Reversal to main bank activity log ---
+        const ts = new Date().toLocaleString();
+        const logMsg = `[${ts}] **VOID SETTLE** (${game.accountNo} @ ${loc}): -${formatNumber(game.capital)} (Cap) -${formatNumber(game.revenue)} (Net Revenue) = Net ${houseEnd - houseStart >= 0 ? '+' : ''}${formatNumber(houseEnd - houseStart)}`;
+        mainBankData.activityLog.unshift(logMsg);
+        mainBankData.activityLog = mainBankData.activityLog.slice(0, 50);
+
+        // --- 5. Update Game Status ---
+        game.status = 'voided';
+        game.remarks = (game.remarks || '') + ' [SETTLEMENT VOIDED]';
+        game.winLose = 0;
+        game.cashout = 0;
+        game.rolling = 0;
+        game.commissionAmount = 0;
+        game.shareAmount = 0; // --- MODIFIED: Zero out new field
+        game.revenue = 0;
+        
+        // --- 6. Save All Data ---
+        let allSaved = true;
+        if (!saveGameRecords()) allSaved = false;
+        // --- MODIFIED ---
+        if (didAccountUpdate && !saveAccountData(logMessages.join(' | '))) allSaved = false;
+        // --- END MODIFICATION ---
+        if (!saveMainBankData()) allSaved = false;
+
+        if (allSaved) {
+            showNotification('Settlement Voided Successfully!', 'success');
+            // addGlobalLog(...) was removed
+            renderTable(); 
+        } else {
+            showNotification('Error: Could not save all void data. Please check console.');
+        }
+    }
+
+
+    // --- Modal Helpers ---
+    function openModal(modalId) {
+        document.getElementById(modalId).style.display = 'flex';
+    }
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+        currentModalGameId = null;
+    }
+
+    // --- NEW: Send Modal Logic ---
+    function formatJapaneseDate(dateString) {
+        try {
+            const date = new Date(dateString + 'T00:00:00'); // Use T00:00:00 to avoid timezone shift
+            const days = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
+            const day = days[date.getDay()];
+            return `${date.getMonth() + 1}月${date.getDate()}日 ${day}`;
+        } catch (e) {
+            return dateString; // fallback
+        }
+    }
+
+    function generateGuestMessage(game, account) {
+        const date = formatJapaneseDate(game.date);
+        const agent = game.agent || 'COMPANY';
+        
+        return `
+☀️GOOD DAY PO! DEAR ${game.accountName} (${game.accountNo}) ☀️
+
+${date}
+シェア終了報告
+
+ACCOUNT # :  ${game.accountNo}
+NAME : ${game.accountName}
+AGENT:  ${agent}
+BUY IN: ${formatNumber(game.capital)}
+STYLE:  ${game.style}
+LOCATION: (${game.location.toUpperCase()})
+CASH OUT: ${formatNumber(game.cashout)}
+WIN/LOSE: ${formatNumber(game.winLose)}
+ROLLING:  ${formatNumber(game.rolling)}
+R/C: -${formatNumber(game.commissionAmount)}
+
+This is Cage Betrnk ${game.location.toUpperCase()}. ❤️Thank you po!
+        `.trim();
+    }
+
+    function generateCompanyMessage(game, account, houseBalance, globalTotalRolling) {
+        const date = formatJapaneseDate(game.date);
+        const agent = game.agent || 'COMPANY';
+        
+        const houseBalanceFormatted = formatNumber(houseBalance);
+        const revenueFormatted = (game.revenue > 0 ? '+' : '') + formatNumber(game.revenue);
+
+        return `
+☀️GOOD DAY PO! DEAR ${game.accountName} (${game.accountNo}) ☀️
+
+${date}
+シェア終了報告
+
+ACCOUNT # :  ${game.accountNo}
+NAME : ${game.accountName}
+AGENT:  ${agent}
+BUY IN: ${formatNumber(game.capital)}
+STYLE:  ${game.style}(${game.tag} ${game.location.toUpperCase()})
+CASH OUT: ${formatNumber(game.cashout)}
+WIN/LOSE: ${formatNumber(game.winLose)}
+SHARE: ${formatNumber(game.shareAmount)}
+ROLLING:  ${formatNumber(game.rolling)}
+R/C: -${formatNumber(game.commissionAmount)}
+
+REVENUE: ${formatNumber(game.revenue)}
+
+🔆BETRNK ${game.location.toUpperCase()} REVENUE:
+${houseBalanceFormatted} (${revenueFormatted})
+
+TOTAL ROLLING OF NORMAL GAME:  ${formatNumber(globalTotalRolling)}
+TOTAL ROLLING OF UNDER GAME:  
+GRAND TOTAL ROLLING : ${formatNumber(globalTotalRolling)}
+
+T/L:${game.tl}
+
+This is Cage Betrnk ${game.location.toUpperCase()}. ❤️Thank you po!
+        `.trim();
+    }
+
+    function openSendModal(gameId) {
+        const game = allGameRecords.find(g => g.id === gameId);
+        if (!game) {
+            showNotification('Error: Could not find game data.', 'error');
+            return;
+        }
+        
+        const account = allAccounts.find(acc => acc.accountNumber === game.accountNo);
+        if (!account) {
+            showNotification('Error: Could not find account data.', 'error');
+            return;
+        }
+        
+        // Get current house balance for the location
+        const houseBalance = mainBankData.houseBalances[game.location] || 0;
+        
+        // Calculate Global Total Rolling from *all* settled games
+        const globalTotalRolling = allGameRecords
+            .filter(g => g.status === 'settled')
+            .reduce((sum, g) => sum + (g.rolling || 0), 0);
+
+        // Generate and set messages
+        const guestMessage = generateGuestMessage(game, account);
+        const companyMessage = generateCompanyMessage(game, account, houseBalance, globalTotalRolling);
+        
+        document.getElementById('guest-message-content').value = guestMessage;
+        document.getElementById('company-message-content').value = companyMessage;
+        
+        openModal('send-modal');
+    }
+    // --- END: Send Modal Logic ---
+
+    // --- Export Function ---
+    function exportTableToCSV() {
+        // Get *all* filtered records, not just the paginated ones
+        const filterValue = document.getElementById('filter-account-no').value.trim().toLowerCase();
+        const recordsToExport = allGameRecords.filter(game => {
+            if (filterValue === '') {
+                return true; // Show all if filter is empty
+            }
+            return game.accountNo.toLowerCase().includes(filterValue);
+        }).sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time)); 
+
+        if (recordsToExport.length === 0) {
+            showNotification('No data to export.', 'error');
+            return;
+        }
+
+        // --- MODIFIED: Added 'Share Amount' to columns ---
+        const columns = [
+            'Status', 'Date', 'Time', 'Account No', 'Account Name', 'Agent', 
+            'Style', 'Capital', 'Cashout', 'Win/Lose', 'Rolling', 
+            'R/C Rate %', 'R/C Amount', 'Share Rate %', 'Share Amount', 'Revenue (Net)', 
+            'Location', 'TAG', 'Remarks'
+        ];
+        
+        let csvContent = "data:text/csv;charset=utf-8," + columns.join(",") + "\n";
+
+        recordsToExport.forEach(game => {
+            // --- MODIFIED: Added 'game.shareAmount' to row ---
+            const row = [
+                game.status,
+                game.date,
+                game.time,
+                game.accountNo,
+                `"${game.accountName.replace(/"/g, '""')}"`, 
+                `"${(game.agent || '').replace(/"/g, '""')}"`,
+                game.style,
+                game.capital,
+                game.cashout,
+                game.winLose,
+                game.rolling,
+                game.commissionRate,
+                game.commissionAmount,
+                game.revenueRateShare,
+                (game.shareAmount || 0),
+                game.revenue,
+                game.location,
+                game.tag,
+                `"${(game.remarks || '').replace(/"/g, '""')}"` 
+            ];
+            csvContent += row.join(",") + "\n";
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        
+        const filterValueForName = document.getElementById('filter-account-no').value.trim();
+        const filterName = filterValueForName !== '' ? filterValueForName : 'all_guests';
+        const timestamp = new Date().toISOString().slice(0, 10);
+        link.setAttribute("download", `game_records_${filterName}_${timestamp}.csv`);
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // addGlobalLog(...) was removed
+    }
+
+    // --- Initializer ---
+    document.addEventListener('DOMContentLoaded', () => {
+        loadData();
+        renderTable();
+
+        // --- NEW: Check for Auto-Settle URL Parameter ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const settleGameId = urlParams.get('settle');
+
+        if (settleGameId) {
+            const gameToSettle = allGameRecords.find(g => g.id === settleGameId);
+            if (gameToSettle && gameToSettle.status === 'active') {
+                // Open the modal
+                openSettleModal(settleGameId);
+                
+                // Find and highlight the row
+                const row = document.getElementById(`game-row-${settleGameId}`);
+                if (row) {
+                    // Scroll to it
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    // Add a temporary highlight class
+                    row.classList.add('highlight-row');
+                    // Remove the class after the animation finishes
+                    setTimeout(() => {
+                        row.classList.remove('highlight-row');
+                    }, 3000);
+                }
+            } else if (gameToSettle) {
+                showNotification(`Game is already ${gameToSettle.status}.`, 'error');
+            } else {
+                showNotification(`Game ID ${settleGameId} not found.`, 'error');
+            }
+        }
+        // --- END: Auto-Settle Logic ---
+
+
+        // Bind modal close buttons
+        document.querySelectorAll('.close-btn').forEach(btn => {
+            btn.addEventListener('click', () => closeModal(btn.dataset.modal));
+        });
+
+        // Bind advance form
+        document.getElementById('advance-form').addEventListener('submit', handleAdvanceSubmit);
+        
+        // Bind settle form
+        document.getElementById('settle-form').addEventListener('submit', handleSettleSubmit);
+
+        // --- NEW: Bind Send Modal Buttons ---
+        document.getElementById('send-guest-btn').addEventListener('click', () => {
+            const message = document.getElementById('guest-message-content').value;
+            sendToTelegram(message);
+        });
+        document.getElementById('send-company-btn').addEventListener('click', () => {
+            const message = document.getElementById('company-message-content').value;
+            sendToTelegram(message);
+        });
+        // --- END: Bind Send Modal Buttons ---
+
+        // Bind storage listener
+        window.addEventListener('storage', (e) => {
+            if (e.key === GAME_RECORD_KEY || e.key === ACCOUNT_STORAGE_KEY || e.key === MAINBANK_KEY) {
+                loadData();
+                renderTable();
+            }
+        });
+
+        // Bind filter, export, and pagination
+        // Bind new filter input
+        document.getElementById('filter-account-no').addEventListener('input', () => {
+            currentPage = 1;
+            renderTable();
+        });
+        
+        // Bind new clear filter button
+        document.getElementById('clear-filter-btn').addEventListener('click', () => {
+            document.getElementById('filter-account-no').value = '';
+            currentPage = 1;
+            renderTable();
+        });
+
+        document.getElementById('items-per-page').addEventListener('change', () => {
+            currentPage = 1; 
+            renderTable();
+        });
+        document.getElementById('export-csv-btn').addEventListener('click', exportTableToCSV);
+    });
+    </script>
+</body>
+</html>

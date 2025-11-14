@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Main Bank</title>
+  <style>
+    :root{
+      --bg:#1e1e2f; --panel:#2e2e3e; --muted:#3b3b4f; --text:#fff; --sub:#aabfff;
+      --ok:#4CAF50; --bad:#f44336; --ink:#ddd; --line:#444; --chip:#666;
+    }
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}
+    .page{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+    nav{padding:18px;background:#232336;border-right:1px solid var(--line)}
+    nav h1{margin:0 0 12px 0;font-size:18px;color:#eaeaff}
+    nav button, nav a{display:block;width:100%;margin:6px 0;padding:12px;border:0;border-radius:8px;background:#444;color:#fff;cursor:pointer;text-align:left}
+    nav button:hover,nav a:hover{background:#595959}
+    main{padding:22px 26px}
+    .grid{display:grid;gap:18px}
+    .grid.cols-2{grid-template-columns:1fr 1fr}
+    .grid.cols-3{grid-template-columns:1fr 1fr 1fr}
+    .card{background:var(--panel);border-radius:14px;padding:18px}
+    .card h2{margin:0 0 10px 0;font-size:18px}
+    .muted{color:#cfd1ff}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .pill{background:var(--muted);padding:6px 10px;border-radius:999px;font-size:12px}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border-bottom:1px solid var(--line);padding:10px;text-align:left}
+    .table tfoot td{font-weight:700}
+    input[type="text"],input[type="number"],select,textarea{
+      background:#444;border:1px solid var(--chip);color:#fff;padding:10px;border-radius:8px;width:100%;
+    }
+    textarea{min-height:70px;resize:vertical}
+    .btn{padding:10px 12px;border:0;border-radius:8px;cursor:pointer}
+    .btn.primary{background:#3e63dd;color:#fff}
+    .btn.good{background:var(--ok);color:#fff}
+    .btn.bad{background:var(--bad);color:#fff}
+    .btn.ghost{background:#444;color:#fff}
+    .right{justify-content:flex-end}
+    .hint{font-size:12px;opacity:.8}
+    .kpi{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+    .kpi .card{padding:14px}
+    .kpi h3{margin:0 0 6px 0;font-size:12px;color:#c9c9ff}
+    .kpi .val{font-weight:800;font-size:20px}
+    .stack{display:flex;flex-direction:column;gap:10px}
+    .sep{height:1px;background:var(--line);margin:12px 0}
+    .badge-red{background:#3a2222;color:#ffb3b3}
+    .badge-green{background:#1e3a2f;color:#b9ffd1}
+    .badge-blue{background:#22313d;color:#cfe9ff}
+    .warning{color:#ffd27d;font-size:12px}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+    
+    /* NEW: Activity Log Styles */
+    .activity-log {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+        max-height: 250px; /* Matched height of per-loc table */
+        overflow-y: auto;
+    }
+    .activity-log-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+    .activity-log-list li {
+        padding: 6px;
+        border-bottom: 1px solid #3b3b4f;
+        color: #ddd;
+    }
+    .activity-log-list li:last-child {
+        border-bottom: none;
+    }
+    .activity-log-list .log-time {
+        color: #999;
+        margin-right: 8px;
+    }
+    .activity-log-list .log-positive { color: #4CAF50; }
+    .activity-log-list .log-negative { color: #f44336; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav>
+    <h1>🏦 Main Bank</h1>
+    <a href="DASHBOARD.HTML">← Back to Dashboard</a>
+    <button id="refreshBtn">Refresh data</button>
+    <div class="sep"></div>
+    <div class="hint">All data auto-saves to localStorage for now and can be swapped to API later.</div>
+  </nav>
+
+  <main>
+    <section class="grid cols-3">
+      <div class="card">
+        <h2>Grand Totals</h2>
+        <div class="kpi" id="grandTotals">
+          </div>
+      </div>
+
+      <div class="card">
+        <h2>Per-Location Totals</h2>
+        <table class="table" id="perLocTable">
+          <thead><tr><th>Location</th><th>House</th><th>Guests</th><th>Total</th></tr></thead>
+          <tbody></tbody>
+          <tfoot><tr><td>Sum</td><td class="mono" id="sumHouse">₱0.00</td><td class="mono" id="sumGuest">₱0.00</td><td class="mono" id="sumAll">₱0.00</td></tr></tfoot>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Recent House Activity</h2>
+        <div class="activity-log">
+            <ul class="activity-log-list" id="activityLogList">
+                </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid cols-2" style="margin-top:18px;">
+        <div class="card">
+            <h2>House Balances by Location</h2>
+            <div class="hint">Use this to record the house’s portion per location. Guests’ side is auto-summed from accounts.</div>
+            <table class="table" id="houseTable">
+              <thead><tr><th>Location</th><th>House Balance</th><th></th></tr></thead>
+              <tbody></tbody>
+              <tfoot><tr><td>Total House</td><td class="mono" id="houseTotal">₱0.00</td><td></td></tr></tfoot>
+            </table>
+            <div class="row right"><button class="btn primary" id="saveHouseBtn">Save House Balances</button></div>
+        </div>
+
+        <div class="card">
+            <h2>Inventories</h2>
+            <div class="stack">
+              <div class="row"><span class="pill">Crypto</span></div>
+              <div class="grid cols-2">
+                <div>
+                  <label>USDT TRC-20</label>
+                  <input id="inv-usdt-trc20" type="number" step="0.01" />
+                </div>
+                <div>
+                  <label>USDT ERC-20</label>
+                  <input id="inv-usdt-erc20" type="number" step="0.01" />
+                </div>
+              </div>
+              <div class="row"><span class="pill">Forex</span></div>
+              <div class="grid cols-2">
+                <div><label>JPY</label><input id="fx-jpy" type="number" step="0.01"/></div>
+                <div><label>KRW</label><input id="fx-krw" type="number" step="0.01"/></div>
+                <div><label>USD</label><input id="fx-usd" type="number" step="0.01"/></div>
+                <div><label>HKD</label><input id="fx-hkd" type="number" step="0.01"/></div>
+              </div>
+              <div class="row right">
+                <button class="btn good" id="saveInvBtn">Save Inventories</button>
+              </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid cols-2" style="margin-top:18px;">
+      <div class="card">
+        <h2>Junket Expenses</h2>
+        <div class="row">
+          <select id="junketCatSelect"></select>
+          <input id="junketNewCat" placeholder="Add new category…"/>
+          <button class="btn ghost" id="addJunketCatBtn">Add</button>
+        </div>
+        <div class="sep"></div>
+        <form id="junketForm" class="grid cols-3">
+          <div><label>Date</label><input id="jxDate" type="date"/></div>
+          <div><label>Category</label><select id="jxCat"></select></div>
+          <div><label>Amount</label><input id="jxAmt" type="number" step="0.01"/></div>
+          <div class="grid cols-3" style="grid-column:1/-1;">
+            <div><label>Location</label><select id="jxLoc"></select></div>
+            <div style="grid-column:1/-1;"><label>Remarks</label><textarea id="jxNote"></textarea></div>
+          </div>
+          <div class="row right" style="grid-column:1/-1;"><button class="btn primary" type="submit">Record Junket Expense</button></div>
+        </form>
+        <div class="sep"></div>
+        <table class="table" id="junketTable">
+          <thead><tr><th>Date</th><th>Category</th><th>Location</th><th class="mono">Amount</th><th></th></tr></thead>
+          <tbody></tbody>
+          <tfoot><tr><td colspan="3">Total</td><td class="mono" id="junketTotal">₱0.00</td><td></td></tr></tfoot>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Non-Junket Expenses</h2>
+        <div class="row">
+          <select id="nonCatSelect"></select>
+          <input id="nonNewCat" placeholder="Add new category…"/>
+          <button class="btn ghost" id="addNonCatBtn">Add</button>
+        </div>
+        <div class="sep"></div>
+        <form id="nonForm" class="grid cols-3">
+          <div><label>Date</label><input id="nxDate" type="date"/></div>
+          <div><label>Category</label><select id="nxCat"></select></div>
+          <div><label>Amount</label><input id="nxAmt" type="number" step="0.01"/></div>
+          <div class="grid cols-3" style="grid-column:1/-1;">
+            <div><label>Location</label><select id="nxLoc"></select></div>
+            <div style="grid-column:1/-1;"><label>Remarks</label><textarea id="nxNote"></textarea></div>
+          </div>
+          <div class="row right" style="grid-column:1/-1;"><button class="btn primary" type="submit">Record Non-Junket Expense</button></div>
+        </form>
+        <div class="sep"></div>
+        <table class="table" id="nonTable">
+          <thead><tr><th>Date</th><th>Category</th><th>Location</th><th class="mono">Amount</th><th></th></tr></thead>
+          <tbody></tbody>
+          <tfoot><tr><td colspan="3">Total</td><td class="mono" id="nonTotal">₱0.00</td><td></td></tr></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:18px;">
+      <h2>Active Markers</h2>
+      <div class="row">
+        <button class="btn ghost" id="importMarkersBtn" title="Try to import from account data">Import from Accounts</button>
+        <div class="warning">If account data doesn’t include markers, add them below.</div>
+      </div>
+      <div class="sep"></div>
+      <form id="markerForm" class="grid cols-3">
+        <div><label>Account No.</label><input id="mkAcc" placeholder="e.g. BSM001"/></div>
+        <div><label>Name</label><input id="mkName" placeholder="Guest Name"/></div>
+        <div><label>Amount</label><input id="mkAmt" type="number" step="0.01"/></div>
+        <div><label>Status</label>
+          <select id="mkStatus"><option value="active">Active</option><option value="settled">Settled</option></select>
+        </div>
+        <div style="grid-column:1/-1;"><label>Remarks</label><textarea id="mkNote"></textarea></div>
+        <div class="row right" style="grid-column:1/-1;"><button class="btn primary" type="submit">Add Marker</button></div>
+      </form>
+      <div class="sep"></div>
+      <table class="table" id="markerTable">
+        <thead><tr><th>Account</th><th>Name</th><th>Status</th><th class="mono">Amount</th><th></th></tr></thead>
+        <tbody></tbody>
+        <tfoot><tr><td colspan="3">Active Total</td><td class="mono" id="markerTotal">₱0.00</td><td></td></tr></tfoot>
+      </table>
+    </section>
+
+    <section class="card" style="margin-top:18px;">
+      <h2>Monthly Game Record (Auto-Calculated)</h2>
+      <div class="row right">
+        <button class="btn primary" id="recalcMonthlyBtn">Recalculate Monthly Data</button>
+      </div>
+      <div class="hint">This table sums all 'Settled' games from the Game Record, grouped by month.</div>
+      <div class="sep"></div>
+      <table class="table" id="gameTable">
+        <thead><tr>
+          <th>Month</th><th class="mono">Buy In</th><th class="mono">Win/Lose</th>
+          <th class="mono">Share Amt</th><th class="mono">Rolling</th><th class="mono">Commission</th>
+          <th class="mono">Revenue (Net)</th><th></th>
+        </tr></thead>
+        <tbody>
+          <tr><td colspan="8" class="hint">Click 'Recalculate' to load data.</td></tr>
+        </tbody>
+        <tfoot><tr><td>Totals</td>
+          <td class="mono" id="gmTB">₱0.00</td><td class="mono" id="gmTWL">₱0.00</td>
+          <td class="mono" id="gmTShare">₱0.00</td><td class="mono" id="gmTR">₱0.00</td>
+          <td class="mono" id="gmTC">₱0.00</td>
+          <td class="mono" id="gmTRevenue">₱0.00</td><td></td>
+        </tr></tfoot>
+      </table>
+    </section>
+
+    <section class="card" style="margin-top:18px;">
+      <h2>Live Daily Revenue vs Expenses (Auto-Calculated)</h2>
+      <div class="row right">
+        <button class="btn primary" id="recalcDailyBtn">Recalculate Daily Data</button>
+      </div>
+      <div class="hint">This table sums 'Game Revenue (Net)' from settled games and subtracts 'Expenses' from this page, grouped by day.</div>
+      <div class="sep"></div>
+      <table class="table" id="dailyTable">
+        <thead><tr><th>Date</th><th class="mono">Game Revenue (Net)</th><th class="mono">Expenses</th><th class="mono">Net</th><th></th></tr></thead>
+        <tbody>
+          <tr><td colspan="5" class="hint">Click 'Recalculate' to load data.</td></tr>
+        </tbody>
+        <tfoot><tr><td>Totals</td><td class="mono" id="dyTR">₱0.00</td><td class="mono" id="dyTE">₱0.00</td><td class="mono" id="dyTN">₱0.00</td><td></td></tr></tfoot>
+      </table>
+    </section>
+
+    <div id="toast" style="position:fixed;bottom:20px;right:20px;padding:12px 16px;border-radius:8px;background:#333;opacity:0;transition:.3s">Saved</div>
+  </main>
+</div>
+
+<script>
+/* ------------------------------------------------------------------
+   DataBridge — wraps localStorage now, can use fetch() later.
+-------------------------------------------------------------------*/
+const ACCOUNT_STORAGE_KEY = 'account-dashboard:v1'; // your existing key (accounts/locations)
+const MAINBANK_KEY = 'mainbank:v1';
+const GAME_RECORD_KEY = 'gamerecord:v1'; // NEW
+
+const DataBridge = {
+  async loadAccounts() {
+    const raw = localStorage.getItem(ACCOUNT_STORAGE_KEY);
+    if (!raw) return { accounts: [], locations: [] };
+    const s = JSON.parse(raw);
+    return {
+      accounts: Array.isArray(s.accounts) ? s.accounts : [],
+      locations: Array.isArray(s.locations) ? s.locations : []
+    };
+  },
+  async loadMainbank() {
+    const raw = localStorage.getItem(MAINBANK_KEY);
+    if (!raw) {
+      const init = {
+        version: 1,
+        createdAt: new Date().toISOString(),
+        houseBalances: {}, // {loc: number}
+        activityLog: [], // For game settlements
+        crypto: { usdt_trc20:0, usdt_erc20:0 },
+        forex: { jpy:0, krw:0, usd:0, hkd:0 },
+        junketExpenseCategories: ["Salary","Transportation","Security","General Supplies","Hotel","Other Expenses","Employee Benefits","Car","Concierge Fund","FnB","Event","Rent","Revenue Share","Gifts"],
+        nonJunketExpenseCategories: ["bsm expenses","bgc expenses","bk expenses"],
+        expenses: [], // {id,date,kind:'junket'|'non',category,location,amount,remarks}
+        markers: [],  // {id,accountNumber,name,amount,status,remarks}
+        monthlyGame: [], // {id,month,buyIn,winLose,share,rolling,commission,promoName,ngr}
+        daily: [] // {id,date,rev,exp,net,notes}
+      };
+      localStorage.setItem(MAINBANK_KEY, JSON.stringify(init));
+      return init;
+    }
+    const data = JSON.parse(raw);
+    // Ensure new fields exist on old data
+    if (!data.activityLog) data.activityLog = [];
+    if (!data.houseBalances) data.houseBalances = {};
+    return data;
+  },
+  // NEW: Load game records
+  async loadGameRecords() {
+    const raw = localStorage.getItem(GAME_RECORD_KEY);
+    if (!raw) return [];
+    try {
+        return JSON.parse(raw);
+    } catch (e) {
+        console.error("Failed to parse game records", e);
+        return [];
+    }
+  },
+  async saveMainbank(state) {
+    localStorage.setItem(MAINBANK_KEY, JSON.stringify(state));
+    return true;
+  }
+};
+
+// utils
+const fmtPHP = (n)=> new Intl.NumberFormat('en-US',{style:'currency',currency:'PHP',minimumFractionDigits:2}).format(+n||0);
+const uid = ()=> Math.random().toString(36).slice(2,9);
+const toast=(m='Saved')=>{
+  const t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1;
+  setTimeout(()=>t.style.opacity=0,1200);
+};
+
+// state
+let MB = null;        // mainbank
+let ACC = {accounts:[], locations:[]}; // accounts/locations
+let GAMES = []; // NEW
+
+// DOM refs
+const perLocTBody = document.querySelector('#perLocTable tbody');
+const sumHouse = document.getElementById('sumHouse');
+const sumGuest = document.getElementById('sumGuest');
+const sumAll = document.getElementById('sumAll');
+const grandTotals = document.getElementById('grandTotals');
+const activityLogList = document.getElementById('activityLogList'); 
+
+const houseTBody = document.querySelector('#houseTable tbody');
+const houseTotal = document.getElementById('houseTotal');
+const saveHouseBtn = document.getElementById('saveHouseBtn');
+
+const invTrc = document.getElementById('inv-usdt-trc20');
+const invErc = document.getElementById('inv-usdt-erc20');
+const fxJPY = document.getElementById('fx-jpy');
+const fxKRW = document.getElementById('fx-krw');
+const fxUSD = document.getElementById('fx-usd');
+const fxHKD = document.getElementById('fx-hkd');
+document.getElementById('saveInvBtn').addEventListener('click', async ()=>{
+  MB.crypto.usdt_trc20 = +invTrc.value||0;
+  MB.crypto.usdt_erc20 = +invErc.value||0;
+  MB.forex = { jpy:+fxJPY.value||0, krw:+fxKRW.value||0, usd:+fxUSD.value||0, hkd:+fxHKD.value||0 };
+  await DataBridge.saveMainbank(MB); toast('Inventories saved');
+  renderTop(); // We don't re-render the log here, just top KPIs
+});
+
+// category pickers
+const junketCatSelect = document.getElementById('junketCatSelect');
+const nonCatSelect = document.getElementById('nonCatSelect');
+document.getElementById('addJunketCatBtn').addEventListener('click',()=>{
+  const v=document.getElementById('junketNewCat').value.trim();
+  if(!v) return;
+  MB.junketExpenseCategories.push(v);
+  document.getElementById('junketNewCat').value='';
+  saveCats(); fillCats(); toast('Junket category added');
+});
+document.getElementById('addNonCatBtn').addEventListener('click',()=>{
+  const v=document.getElementById('nonNewCat').value.trim();
+  if(!v) return;
+  MB.nonJunketExpenseCategories.push(v);
+  document.getElementById('nonNewCat').value='';
+  saveCats(); fillCats(); toast('Non-junket category added');
+});
+function saveCats(){ DataBridge.saveMainbank(MB); }
+
+// expenses forms & tables
+const jxLoc = document.getElementById('jxLoc'), nxLoc = document.getElementById('nxLoc');
+const jxCat = document.getElementById('jxCat'), nxCat = document.getElementById('nxCat');
+const junketTBody = document.querySelector('#junketTable tbody');
+const nonTBody = document.querySelector('#nonTable tbody');
+const junketTotal = document.getElementById('junketTotal');
+const nonTotal = document.getElementById('nonTotal');
+
+document.getElementById('junketForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const row = {
+    id: uid(), date: document.getElementById('jxDate').value || new Date().toISOString().slice(0,10),
+    kind:'junket', category: jxCat.value, location: jxLoc.value,
+    amount: +document.getElementById('jxAmt').value || 0,
+    remarks: document.getElementById('jxNote').value.trim()
+  };
+  MB.expenses.unshift(row);
+  await DataBridge.saveMainbank(MB); toast('Junket expense recorded'); renderExpenses();
+});
+document.getElementById('nonForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const row = {
+    id: uid(), date: document.getElementById('nxDate').value || new Date().toISOString().slice(0,10),
+    kind:'non', category: nxCat.value, location: nxLoc.value,
+    amount: +document.getElementById('nxAmt').value || 0,
+    remarks: document.getElementById('nxNote').value.trim()
+  };
+  MB.expenses.unshift(row);
+  await DataBridge.saveMainbank(MB); toast('Non-junket expense recorded'); renderExpenses();
+});
+
+function delExpense(id){ MB.expenses = MB.expenses.filter(e=>e.id!==id); DataBridge.saveMainbank(MB).then(()=>{toast('Deleted'); renderExpenses();}); }
+
+// markers
+const markerTBody = document.querySelector('#markerTable tbody');
+const markerTotal = document.getElementById('markerTotal');
+document.getElementById('markerForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const row = {
+    id: uid(),
+    accountNumber: document.getElementById('mkAcc').value.trim(),
+    name: document.getElementById('mkName').value.trim(),
+    amount: +document.getElementById('mkAmt').value || 0,
+    status: document.getElementById('mkStatus').value,
+    remarks: document.getElementById('mkNote').value.trim()
+  };
+  MB.markers.unshift(row);
+  await DataBridge.saveMainbank(MB); toast('Marker added'); renderMarkers();
+});
+document.getElementById('importMarkersBtn').addEventListener('click', ()=>{
+  // Best effort: if an account has creditLine, treat as potential marker placeholder
+  const guesses = ACC.accounts
+    .filter(a => (a.creditLine||0) > 0)
+    .map(a => ({id:uid(),accountNumber:a.accountNumber,name:a.name,amount:+a.creditLine||0,status:'active',remarks:'Imported from account creditLine'}));
+  if (guesses.length){
+    MB.markers = mergeUnique(MB.markers, guesses, x=>x.accountNumber+':'+x.amount);
+    DataBridge.saveMainbank(MB).then(()=>{toast('Markers imported'); renderMarkers();});
+  } else {
+    toast('No markers found in accounts');
+  }
+});
+
+// REMOVED: Old Monthly Game form logic
+
+// REMOVED: Old Daily Live View form logic
+
+// house table editing
+saveHouseBtn.addEventListener('click', async ()=>{
+  // read inputs
+  ACC.locations.forEach(loc=>{
+    const el = document.querySelector(`input[data-house="${loc}"]`);
+    MB.houseBalances[loc] = +el.value || 0;
+  });
+  await DataBridge.saveMainbank(MB); toast('House balances saved');
+  renderTop();
+});
+
+// refresh
+document.getElementById('refreshBtn').addEventListener('click', async ()=>{ await boot(); toast('Refreshed'); });
+
+/* -------------------- Rendering -------------------- */
+function renderTop(){
+  // compute guest totals by location from ACC state (accounts + locations) 
+  const guestTotals = {};
+  ACC.locations.forEach(loc => guestTotals[loc]=0);
+  ACC.accounts.forEach(a => {
+    // Ensure balances object exists
+    if (!a.balances) a.balances = {};
+    ACC.locations.forEach(loc => guestTotals[loc] += (a.balances?.[loc]||0));
+  });
+
+  // per-location table
+  perLocTBody.innerHTML='';
+  let sumH=0,sumG=0;
+  ACC.locations.forEach(loc=>{
+    const h = +MB.houseBalances[loc]||0;
+    const g = +guestTotals[loc]||0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${cap(loc)}</td><td class="mono">${fmtPHP(h)}</td><td class="mono">${fmtPHP(g)}</td><td class="mono">${fmtPHP(h+g)}</td>`;
+    perLocTBody.appendChild(tr);
+    sumH+=h; sumG+=g;
+  });
+  sumHouse.textContent = fmtPHP(sumH);
+  sumGuest.textContent = fmtPHP(sumG);
+  sumAll.textContent = fmtPHP(sumH+sumG);
+
+  // KPIs
+  grandTotals.innerHTML = '';
+  addKPI('House Total', fmtPHP(sumH));
+  addKPI('Guest Total', fmtPHP(sumG));
+  addKPI('All Locations', fmtPHP(sumH+sumG));
+
+  // inventories inputs
+  invTrc.value = MB.crypto.usdt_trc20||0;
+  invErc.value = MB.crypto.usdt_erc20||0;
+  fxJPY.value = MB.forex.jpy||0; fxKRW.value = MB.forex.krw||0; fxUSD.value = MB.forex.usd||0; fxHKD.value = MB.forex.hkd||0;
+}
+
+// NEW: Render Activity Log
+function renderActivityLog() {
+    activityLogList.innerHTML = '';
+    if (!MB.activityLog || MB.activityLog.length === 0) {
+        activityLogList.innerHTML = '<li>No house activity recorded.</li>';
+        return;
+    }
+    
+    // Show most recent 50
+    MB.activityLog.slice(0, 50).forEach(log => {
+        const li = document.createElement('li');
+        
+        // Match for timestamp
+        const timeMatch = log.match(/^\[(.*?)\]\s/);
+        let time = '';
+        let msg = log;
+        
+        if (timeMatch) {
+            time = timeMatch[1];
+            msg = log.replace(timeMatch[0], ''); // Remove timestamp from msg
+        }
+        
+        // Color coding for net change
+        let netClass = '';
+        if (msg.includes('Net +')) {
+            netClass = 'log-positive';
+        } else if (msg.includes('Net -')) {
+            netClass = 'log-negative';
+        }
+        
+        li.innerHTML = `<span class="log-time">[${time}]</span> <span class="${netClass}">${msg}</span>`;
+        activityLogList.appendChild(li);
+    });
+}
+
+function renderHouseInputs(){
+  houseTBody.innerHTML='';
+  let t=0;
+  ACC.locations.forEach(loc=>{
+    const v = +MB.houseBalances[loc]||0;
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${cap(loc)}</td>
+      <td><input data-house="${loc}" type="number" step="0.01" value="${v}"/></td>
+      <td></td>`;
+    houseTBody.appendChild(tr); t+=v;
+  });
+  houseTotal.textContent = fmtPHP(t);
+}
+
+function renderExpenses(){
+  // fill location selects
+  jxLoc.innerHTML = nxLoc.innerHTML = ACC.locations.map(l=>`<option value="${l}">${cap(l)}</option>`).join('');
+  // tables
+  junketTBody.innerHTML=''; nonTBody.innerHTML='';
+  let tj=0, tn=0;
+  MB.expenses.forEach(e=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${e.date}</td><td>${e.category}</td><td>${cap(e.location||'')}</td><td class="mono">${fmtPHP(e.amount||0)}</td>
+      <td><button class="btn ghost" onclick="delExpense('${e.id}')">Delete</button></td>`;
+    if (e.kind==='junket'){ junketTBody.appendChild(tr); tj+=+e.amount||0; } else { nonTBody.appendChild(tr); tn+=+e.amount||0; }
+  });
+  junketTotal.textContent = fmtPHP(tj);
+  nonTotal.textContent = fmtPHP(tn);
+}
+
+function renderMarkers(){
+  markerTBody.innerHTML='';
+  let total=0;
+  MB.markers.forEach(m=>{
+    if (m.status==='active') total+= +m.amount||0;
+    const badge = m.status==='active' ? 'badge-green' : 'badge-blue';
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td class="mono">${m.accountNumber||''}</td>
+      <td>${m.name||''}</td>
+      <td><span class="pill ${badge}">${m.status}</span></td>
+      <td class="mono">${fmtPHP(m.amount||0)}</td>
+      <td><button class="btn ghost" onclick="removeMarker('${m.id}')">Delete</button></td>`;
+    markerTBody.appendChild(tr);
+  });
+  markerTotal.textContent = fmtPHP(total);
+}
+function removeMarker(id){ MB.markers = MB.markers.filter(m=>m.id!==id); DataBridge.saveMainbank(MB).then(()=>{toast('Deleted'); renderMarkers();}); }
+
+// --- NEW: Automated Monthly Game Record ---
+function autoRenderMonthlyGame() {
+    const gameTBody = document.querySelector('#gameTable tbody');
+    // --- MODIFIED: Renamed selectors for clarity ---
+    const gmTB=document.getElementById('gmTB'), gmTWL=document.getElementById('gmTWL'), gmTShare=document.getElementById('gmTShare'),
+          gmTR=document.getElementById('gmTR'), gmTC=document.getElementById('gmTC'), gmTRevenue=document.getElementById('gmTRevenue');
+    
+    gameTBody.innerHTML = '';
+    // --- MODIFIED: Renamed totals for clarity ---
+    let tb=0, twl=0, ts=0, tr=0, tc=0, tRev=0;
+
+    const settledGames = GAMES.filter(g => g.status === 'settled');
+    const months = {}; // e.g., {'2025-11': { buyIn: 0, ... }}
+
+    settledGames.forEach(game => {
+        const month = game.date.slice(0, 7); // '2025-11'
+        if (!months[month]) {
+            // --- MODIFIED: Added revenue and shareAmount ---
+            months[month] = { buyIn: 0, winLose: 0, shareAmount: 0, rolling: 0, commission: 0, revenue: 0 };
+        }
+        
+        // ---
+        // --- MODIFIED LOGIC (Based on new calculation model) ---
+        // ---
+        const gameWinLose = (game.winLose || 0);
+        const gameComm = (game.commissionAmount || 0);
+        const gameRolling = (game.rolling || 0);
+        // Use the stored Share Amount (gross)
+        const gameGrossShare = (game.shareAmount || 0);
+        // Use the stored Revenue (net)
+        const gameNetRevenue = (game.revenue || 0);
+        // --- END MODIFIED LOGIC ---
+
+        months[month].buyIn += (game.capital || 0);
+        months[month].winLose += gameWinLose;
+        months[month].shareAmount += gameGrossShare; // <-- Store Gross Share
+        months[month].rolling += gameRolling;
+        months[month].commission += gameComm;
+        months[month].revenue += gameNetRevenue; // <-- Store Net Revenue
+    });
+
+    const sortedMonths = Object.keys(months).sort().reverse();
+
+    if (sortedMonths.length === 0) {
+        gameTBody.innerHTML = `<tr><td colspan="8" class="hint">No settled games found.</td></tr>`;
+    }
+
+    sortedMonths.forEach(monthKey => {
+        const data = months[monthKey];
+        // --- MODIFIED: Update totals ---
+        tb+=data.buyIn; twl+=data.winLose; ts+=data.shareAmount; tr+=data.rolling; tc+=data.commission; tRev+=data.revenue;
+        
+        // --- MODIFIED: Update table row to show Share Amt and Revenue (Net) ---
+        const trEl = document.createElement('tr');
+        trEl.innerHTML = `<td>${monthKey}</td>
+          <td class="mono">${fmtPHP(data.buyIn)}</td>
+          <td class="mono ${data.winLose > 0 ? 'badge-green' : 'badge-red'}">${fmtPHP(data.winLose)}</td>
+          <td class="mono ${data.shareAmount > 0 ? 'badge-green' : 'badge-red'}">${fmtPHP(data.shareAmount)}</td>
+          <td class="mono">${fmtPHP(data.rolling)}</td>
+          <td class="mono">${fmtPHP(data.commission)}</td>
+          <td class="mono ${data.revenue > 0 ? 'badge-green' : 'badge-red'}">${fmtPHP(data.revenue)}</td>
+          <td></td>`;
+        gameTBody.appendChild(trEl);
+    });
+
+    // --- MODIFIED: Update total fields ---
+    gmTB.textContent=fmtPHP(tb); gmTWL.textContent=fmtPHP(twl); gmTShare.textContent=fmtPHP(ts);
+    gmTR.textContent=fmtPHP(tr); gmTC.textContent=fmtPHP(tc); gmTRevenue.textContent=fmtPHP(tRev);
+    toast('Monthly game data recalculated');
+}
+
+// --- NEW: Automated Daily Revenue vs Expenses ---
+function autoRenderDailyNet() {
+    const dailyTBody = document.querySelector('#dailyTable tbody');
+    const dyTR=document.getElementById('dyTR'), dyTE=document.getElementById('dyTE'), dyTN=document.getElementById('dyTN');
+
+    dailyTBody.innerHTML = '';
+    let tr=0, te=0, tn=0;
+
+    const days = {}; // e.g., {'2025-11-11': { rev: 0, exp: 0 }}
+
+    // 1. Aggregate revenue from settled games
+    const settledGames = GAMES.filter(g => g.status === 'settled');
+    settledGames.forEach(game => {
+        const date = game.date; // Use game start date
+        if (!days[date]) days[date] = { rev: 0, exp: 0 };
+        // 'revenue' from game record is the house's *NET* share
+        days[date].rev += (game.revenue || 0);
+    });
+
+    // 2. Aggregate expenses
+    MB.expenses.forEach(expense => {
+        const date = expense.date;
+        if (!days[date]) days[date] = { rev: 0, exp: 0 };
+        days[date].exp += (expense.amount || 0);
+    });
+
+    const sortedDays = Object.keys(days).sort().reverse();
+
+    if (sortedDays.length === 0) {
+        dailyTBody.innerHTML = `<tr><td colspan="5" class="hint">No daily data found.</td></tr>`;
+    }
+
+    sortedDays.forEach(dateKey => {
+        const data = days[dateKey];
+        const net = data.rev - data.exp;
+        
+        tr+=data.rev; te+=data.exp; tn+=net;
+
+        const trEl = document.createElement('tr');
+        trEl.innerHTML = `<td>${dateKey}</td>
+          <td class="mono ${data.rev > 0 ? 'badge-green' : (data.rev < 0 ? 'badge-red' : '')}">${fmtPHP(data.rev)}</td>
+          <td class="mono ${data.exp > 0 ? 'badge-red' : ''}">${fmtPHP(data.exp)}</td>
+          <td class="mono ${net > 0 ? 'badge-green' : (net < 0 ? 'badge-red' : '')}">${fmtPHP(net)}</td>
+          <td></td>`;
+        dailyTBody.appendChild(trEl);
+    });
+
+    dyTR.textContent=fmtPHP(tr); dyTE.textContent=fmtPHP(te); dyTN.textContent=fmtPHP(tn);
+    toast('Daily revenue data recalculated');
+}
+
+
+// helpers
+function addKPI(label, val){
+  const c=document.createElement('div'); c.className='card';
+  c.innerHTML=`<h3>${label}</h3><div class="val">${val}</div>`;
+  grandTotals.appendChild(c);
+}
+function cap(s){ return (s||'').charAt(0).toUpperCase()+ (s||'L').slice(1); }
+function mergeUnique(a,b,key){ const seen=new Set(a.map(x=>key(x))); b.forEach(x=>{const k=key(x);if(!seen.has(k)){a.push(x);seen.add(k);}}); return a; }
+
+/* -------------------- Boot -------------------- */
+async function boot(){
+  ACC = await DataBridge.loadAccounts(); // includes balances/locations for guests 
+  MB = await DataBridge.loadMainbank();
+  GAMES = await DataBridge.loadGameRecords(); // NEW
+  
+  // fill category pickers
+  fillCats();
+
+  // render location-dependent UIs
+  renderTop(); 
+  renderActivityLog(); 
+  renderHouseInputs(); 
+  renderExpenses(); 
+  renderMarkers(); 
+  
+  // NEW: Call auto-renderers
+  autoRenderMonthlyGame();
+  autoRenderDailyNet();
+  
+  // NEW: Bind recalculate buttons
+  document.getElementById('recalcMonthlyBtn').addEventListener('click', autoRenderMonthlyGame);
+  document.getElementById('recalcDailyBtn').addEventListener('click', autoRenderDailyNet);
+}
+function fillCats(){
+  junketCatSelect.innerHTML = MB.junketExpenseCategories.map(c=>`<option>${c}</option>`).join('');
+  nonCatSelect.innerHTML = MB.nonJunketExpenseCategories.map(c=>`<option>${c}</option>`).join('');
+  jxCat.innerHTML = junketCatSelect.innerHTML;
+  nxCat.innerHTML = nonCatSelect.innerHTML;
+}
+
+// Add storage listener for real-time updates
+window.addEventListener('storage', (e) => {
+    // Check if mainbank, account, or game data was changed
+    if (e.key === MAINBANK_KEY || e.key === ACCOUNT_STORAGE_KEY || e.key === GAME_RECORD_KEY) {
+        // Rerun boot to get fresh data and re-render everything
+        boot();
+    }
+});
+
+boot();
+</script>
+</body>
+</html>

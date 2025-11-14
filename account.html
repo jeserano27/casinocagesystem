@@ -1,0 +1,2131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guest Account Details</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+	/* --- Modals --- */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.6);
+      display: none; /* toggled to flex in JS */
+      align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    .modal {
+      background-color: #2e2e3e;
+      border-radius: 12px;
+      width: min(800px, 92vw);
+      padding: 24px; color: #fff;
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .close-btn { background: none; border: none; color: #fff; font-size: 28px; cursor: pointer; }
+    
+    .form-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .form-row label, .form-label { font-weight: bold; color: #ccc; margin-bottom: 6px; display: block; }
+    .form-row input, .form-row select, .form-row textarea {
+      background: #444; border: 1px solid #666; border-radius: 6px; padding: 10px; color: #fff; width: 100%;
+    }
+    
+    .balance-display {
+      display: flex; gap: 24px; justify-content: space-around;
+      background: #3b3b4f; border-radius: 8px; padding: 16px; margin: 8px 0 16px;
+    }
+    .balance-display strong { color: #aaa; display: block; margin-bottom: 6px; font-weight: 500; }
+    .balance-display span { font-size: 1.4em; font-weight: 700; }
+    .balance-display .ending-deposit { color: #4CAF50; }
+    .balance-display .ending-withdraw { color: #f44336; }
+    
+    .btn {
+        padding: 12px 18px; border: 0; border-radius: 8px; font-weight: 700; cursor: pointer; transition: background-color 0.2s;
+    }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-secondary { background: #6b7280; color: #fff; }
+    .btn-secondary:hover { background: #4b5563; }
+    
+    /* --- NEW: Settlement Game List Item --- */
+    .settlement-game-item {
+        background: #444;
+        border: 1px solid #666;
+        border-radius: 8px;
+        padding: 16px;
+        color: #fff;
+        width: 100%;
+        text-align: left;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-bottom: 10px;
+    }
+    .settlement-game-item:hover {
+        background: #555;
+        border-color: #3b82f6;
+    }
+    /* --- END NEW --- */
+
+    /* Custom toggle switch */
+    .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+        position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+        background-color: #4b5563; transition: .4s; border-radius: 28px;
+    }
+    .slider:before {
+        position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px;
+        background-color: white; transition: .4s; border-radius: 50%;
+    }
+    input:checked + .slider { background-color: #3b82f6; }
+    input:checked + .slider:before { transform: translateX(22px); }
+
+
+    /* --- Base Layout --- */
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background-color: #1e1e2f;
+      color: white;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;  
+    }
+
+    /* --- Left Sidebar --- */
+    .sidebar {
+      width: 280px;
+      background-color: #2e2e3e;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.4);
+      overflow-y: auto;
+    }
+    .sidebar button {
+      padding: 18px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      text-align: left;
+    }
+    .sidebar button:hover { background-color: #666; }
+    .sidebar button.start-game { background-color: #2a8a4a; }
+    .sidebar button.start-game:hover { background-color: #3aa05a; }
+    .sidebar button.settlement { background-color: #a83232; }
+    .sidebar button.settlement:hover { background-color: #c04040; }
+
+    /* --- Main Content Area --- */
+    .main-content {
+      flex: 1;
+      padding: 30px;
+      background-color: #1e1e2f;
+      overflow-y: auto;
+    }
+
+    /* --- Account Header Section --- */
+    .account-header {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 25px;
+      background-color: #2e2e3e;
+      border-radius: 12px;
+      margin-bottom: 30px;
+    }
+    @media (min-width: 768px) {
+      .account-header {
+        flex-direction: row;
+        gap: 30px;
+      }
+    }
+    .profile-pic {
+      width: 150px;
+      height: 150px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .profile-pic img {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      border: 3px solid #555;
+      object-fit: cover;
+    }
+    .profile-pic-actions {
+      display: none; /* Hidden by default */
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .profile-pic-actions label,
+    .profile-pic-actions button {
+      display: block;
+      width: 100%;
+      padding: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      text-align: center;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      opacity: 0.9;
+      transition: opacity 0.2s;
+    }
+    .profile-pic-actions label {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .profile-pic-actions button {
+      background-color: #f44336;
+      color: white;
+    }
+    .profile-pic-actions label:hover,
+    .profile-pic-actions button:hover {
+      opacity: 1;
+    }
+    .profile-pic input[type="file"] {
+      display: none;
+    }
+
+    @media (min-width: 768px) {
+      .profile-pic {
+        margin: 0;
+      }
+    }
+    .profile-details { flex: 1; }
+    .profile-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .profile-header h1 { margin: 0; color: #eee; }
+
+    .edit-details-btn {
+      padding: 8px 15px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      background-color: #555;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .edit-details-btn:hover { background-color: #777; }
+    .edit-details-btn.save-mode {
+      background-color: #4CAF50; /* Green */
+    }
+    .edit-details-btn.save-mode:hover {
+      background-color: #5cb85c;
+    }
+
+    .detail-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 30px;
+    }
+    .detail-field {
+      display: flex;
+      align-items: center;
+      margin: 2px 0;
+      min-width: 300px;
+    }
+    .detail-field label {
+      color: #888;
+      width: 120px;
+      font-size: 15px;
+      font-weight: bold;
+    }
+    .detail-field input[readonly] {
+      font-family: 'Inter', Arial, sans-serif;
+      font-size: 15px;
+      color: #ccc;
+      background-color: transparent;
+      border: none;
+      padding: 5px 0;
+      flex: 1;
+      cursor: default;
+      min-width: 0;
+    }
+    .detail-field input:not([readonly]) {
+      font-family: 'Inter', Arial, sans-serif;
+      font-size: 15px;
+      color: white;
+      background-color: #444;
+      border: 1px solid #777;
+      border-radius: 4px;
+      padding: 5px;
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .status-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #444;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      align-items: center;
+    }
+    .status-item { font-size: 16px; }
+    .status-item strong { color: #999; }
+    .credit-line { font-size: 1.3em; color: #4CAF50; font-weight: bold; }
+    .game-status.active { color: #4CAF50; }
+    .game-status.inactive { color: #f44336; }
+    .promo-control { display: flex; align-items: center; gap: 10px; }
+    .promo-control select {
+      background-color: #444;
+      color: white;
+      border: 1px solid #666;
+      border-radius: 5px;
+      padding: 5px 8px;
+      font-size: 15px;
+    }
+    .add-promo-btn {
+      padding: 3px 10px;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 5px;
+      background-color: #555;
+      color: white;
+      cursor: pointer;
+    }
+    .add-promo-btn:hover { background-color: #777; }
+
+    /* --- Balances & Documents Section --- */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 30px;
+    }
+    @media (min-width: 1024px) {
+      .content-grid {
+        grid-template-columns: 2fr 1fr; /* Balances on left, docs/remarks on right */
+      }
+    }
+
+    /* --- Account Balances Section --- */
+    .account-balances {
+      padding: 25px;
+      background-color: #2e2e3e;
+      border-radius: 12px;
+    }
+    .account-balances h2 {
+      margin-top: 0;
+      border-bottom: 1px solid #444;
+      padding-bottom: 15px;
+    }
+    .balance-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    .balance-card {
+      background-color: #3b3b4f;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+    .balance-card .location {
+      font-size: 1.1em;
+      font-weight: bold;
+      color: #ccc;
+      margin: 0 0 10px 0;
+      text-transform: capitalize;
+    }
+    .balance-card .amount {
+      font-size: 1.6em;
+      font-weight: bold;
+      color: #fff;
+    }
+    .total-balance {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #555;
+      font-size: 1.8em;
+      font-weight: bold;
+      color: #4CAF50;
+      text-align: right;
+    }
+    .total-balance span {
+      color: #ccc;
+      font-weight: normal;
+      font-size: 0.8em;
+      margin-right: 15px;
+    }
+
+    /* --- Document Section --- */
+    .document-section {
+      padding: 25px;
+      background-color: #2e2e3e;
+      border-radius: 12px;
+    }
+    .document-section h2 {
+      margin-top: 0;
+      border-bottom: 1px solid #444;
+      padding-bottom: 15px;
+    }
+    .document-upload-area {
+      display: none; /* Hidden until edit mode */
+      margin-bottom: 20px;
+    }
+    .document-upload-area label {
+      display: block;
+      padding: 20px;
+      border: 2px dashed #555;
+      border-radius: 8px;
+      background-color: #3b3b4f;
+      text-align: center;
+      cursor: pointer;
+      font-size: 15px;
+      color: #ccc;
+    }
+    .document-upload-area label:hover {
+      background-color: #444;
+      border-color: #777;
+    }
+    .document-upload-area input[type="file"] {
+      display: none;
+    }
+    .document-list {
+      display: grid;
+      gap: 10px;
+    }
+    .document-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #3b3b4f;
+      padding: 12px 15px;
+      border-radius: 6px;
+    }
+    .document-item a {
+      color: #aabfff;
+      text-decoration: none;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-right: 10px;
+    }
+    .document-item a:hover {
+      text-decoration: underline;
+    }
+    .document-item button {
+      display: none; /* Hidden until edit mode */
+      background: none;
+      border: none;
+      color: #f44336;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0 5px;
+    }
+    
+    /* --- Remarks Section --- */
+    .remarks-section {
+      padding: 25px;
+      background-color: #2e2e3e;
+      border-radius: 12px;
+    }
+    .remarks-section h2 {
+      margin-top: 0;
+      border-bottom: 1px solid #444;
+      padding-bottom: 15px;
+    }
+    .remarks-log-wrapper {
+      background-color: #3b3b4f;
+      border-radius: 8px;
+      padding: 15px;
+      min-height: 100px;
+      max-height: 250px;
+      overflow-y: auto;
+      margin-bottom: 15px;
+    }
+    .remarks-log-wrapper p {
+      font-size: 14px;
+      color: #ccc;
+      margin: 0 0 10px 0;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #555;
+    }
+    .remarks-log-wrapper p:last-child {
+      margin-bottom: 0;
+      border-bottom: none;
+    }
+    .remarks-log-wrapper .remark-time {
+      display: block;
+      font-size: 12px;
+      color: #888;
+      font-weight: bold;
+    }
+    .add-remark-form {
+      display: none; /* Hidden by default, shown in edit mode */
+    }
+    .add-remark-form textarea {
+      width: 100%;
+      background: #444;
+      border: 1px solid #666;
+      border-radius: 6px;
+      padding: 10px;
+      color: #fff;
+      resize: vertical;
+      min-height: 80px;
+    }
+    .add-remark-form button {
+      padding: 8px 15px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    
+    /* Notification Toaster */
+    #notification {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        color: white;
+        font-size: 16px;
+        z-index: 1000;
+        transition: all 0.3s ease;
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    #notification.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    #notification.success { background-color: #4CAF50; }
+    #notification.error { background-color: #f44336; }
+
+  </style>
+</head>
+<body>
+	
+<!-- Deposit Modal (in-page function) -->
+<div id="deposit-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="deposit-title">
+    <div class="modal-header">
+      <h2 id="deposit-title" style="margin:0;">New Deposit</h2>
+      <button id="close-deposit-btn" class="close-btn" data-modal="deposit-modal">&times;</button>
+    </div>
+
+    <form id="deposit-form" onsubmit="return false;">
+      <div class="form-row">
+        <label for="deposit-type">Type of Deposit</label>
+        <select id="deposit-type">
+          <option value="cash">Cash</option>
+          <option value="cash-chip">Cash Chip</option>
+          <option value="nn-chip">NN Chips</option>
+          <option value="marker">Marker Redemption</option>
+          <option value="bank">Bank Transfer</option>
+          <option value="forex">Forex Redemption</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label for="deposit-location">Deposit To Location</label>
+        <select id="deposit-location"></select>
+      </div>
+
+      <div class="form-row">
+        <label for="deposit-amount">Amount</label>
+        <input type="number" id="deposit-amount" placeholder="0.00" step="0.01" min="0">
+      </div>
+
+      <div class="balance-display">
+        <div>
+          <strong>Starting Balance</strong>
+          <span id="deposit-start">₱0.00</span>
+        </div>
+        <div>
+          <strong>Ending Balance</strong>
+          <span id="deposit-end" class="ending-deposit">₱0.00</span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="deposit-remarks">Remarks</label>
+        <textarea id="deposit-remarks" placeholder="Add transaction notes..."></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="process-deposit-btn">Process Deposit</button>
+    </form>
+  </div>
+</div>
+	
+  <nav class="sidebar">
+    <button onclick="location.href='./DASHBOARD.HTML'">MAIN MENU</button>
+    <hr style="border-color: #444;">
+    <button id="open-deposit-btn">DEPOSIT</button>
+    <button id="open-withdrawal-btn">WITHDRAWAL</button>
+    <button onclick="location.href='marker.html'">MARKER</button>
+    <button onclick="location.href='forex.html'">FOREX</button>
+    <button onclick="location.href='otherreceipt.html'">OTHER RECEIPT</button>
+    <button id="start-game-btn" class="start-game">START GAME (INITIAL BUY IN)</button>
+    <button id="open-buyin-btn">ADD BUY-IN</button>
+    <!-- --- MODIFIED BUTTON --- -->
+    <button id="open-settlement-btn" class="settlement">SETTLEMENT</button>
+    <!-- --- END MODIFICATION --- -->
+    <button id="open-gamerecord-btn">GAME RECORD</button>
+    <button id="open-txhistory-btn">TRANSACTION HISTORY</button>
+  </nav>
+
+  <main class="main-content">
+    
+    <section class="account-header">
+      <div class="profile-pic">
+        <img src="https://placehold.co/150x150/888/FFF?text=Guest" alt="Guest Photo" id="profile-img">
+        <div class="profile-pic-actions" id="profile-pic-actions">
+            <label for="upload-photo-input">Upload Photo</label>
+            <input type="file" id="upload-photo-input" accept="image/*">
+            <button id="delete-photo-btn">Delete Photo</button>
+        </div>
+      </div>
+
+      <div class="profile-details">
+        <div class="profile-header">
+          <h1 id="guest-name">Loading...</h1>
+          <button class="edit-details-btn" id="edit-details-btn">Edit Details</button>
+        </div>
+        
+        <div class="detail-group">
+          <div class="detail-field">
+            <label for="acc-no">Account No:</label>
+            <input type="text" id="acc-no" value="-" readonly style="color: #fff; font-weight: bold;">
+          </div>
+          <div class="detail-field">
+            <label for="agent">Agent:</label>
+            <input type="text" id="agent" class="editable-field" value="-" readonly>
+          </div>
+          <div class="detail-field">
+            <label for="mobile">Mobile No:</label>
+            <input type="text" id="mobile" class="editable-field" value="-" readonly>
+          </div>
+          <div class="detail-field">
+            <label for="address">Address:</label>
+            <input type="text" id="address" class="editable-field" value="-" readonly>
+          </div>
+          <div class="detail-field">
+            <label for="email">Email:</label>
+            <input type="text" id="email" class="editable-field" value="-" readonly>
+          </div>
+          <div class="detail-field">
+            <label for="occupation">Occupation:</label>
+            <input type="text" id="occupation" class="editable-field" value="-" readonly>
+          </div>
+          <div class="detail-field">
+            <label for="telegram">Telegram Acc:</label>
+            <input type="text" id="telegram" class="editable-field" value="-" readonly>
+          </div>
+          <div class="detail-field">
+            <label for="sof">Source of Fund:</label>
+            <input type="text" id="sof" class="editable-field" value="-" readonly>
+          </div>
+        </div>
+
+        <div class="status-section">
+          <div class="status-item">
+            <strong>Credit Line:</strong>
+            <div class="credit-line editable-field-container">
+                <input type="text" id="credit-line" class="editable-field" value="₱0.00" readonly style="color: #4CAF50; font-size: 1.0em; font-weight: 		bold;">
+            </div>
+          </div>
+          <div class="status-item">
+            <strong>Game Status:</strong>
+            <div class="game-status inactive" id="game-status">No Active Game</div>
+          </div>
+          <div class="status-item">
+            <strong>Promotion Status:</strong>
+            <div class="promo-control">
+              <select name="promo" id="promo-select">
+                <option value="none" selected>None</option>
+                <option value="share">Revenue Share</option>
+                <option value="losing">Losing Back</option>
+                <option value="other">Other Promotion</option>
+              </select>
+              <button class="add-promo-btn" id="add-promo-btn">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Content Grid Wrapper -->
+    <div class="content-grid">
+
+        <section class="account-balances">
+          <h2>Guest Account Balances</h2>
+          
+          <div class="balance-grid" id="balance-grid">
+            <p>Loading balances...</p>
+          </div>
+
+          <div class="total-balance">
+            <span>TOTAL GUEST ACCOUNT BALANCE:</span>
+            <span id="total-balance">₱0.00</span>
+          </div>
+
+        </section>
+        
+        <!-- Right Column Container -->
+        <div class="flex flex-col gap-8">
+            <section class="document-section">
+                <h2>Documents</h2>
+                
+                <div class="document-upload-area" id="doc-upload-area">
+                    <label for="doc-upload-input">
+                        Click to upload a document (Max 3)
+                    </label>
+                    <input type="file" id="doc-upload-input" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+
+                <div class="document-list" id="doc-list">
+                    <p>No documents uploaded.</p>
+                </div>
+            </section>
+
+            <section class="remarks-section">
+                <h2>Guest Remarks</h2>
+                
+                <div class="remarks-log-wrapper" id="remarks-log">
+                    <p>No remarks added.</p>
+                </div>
+
+                <form class="add-remark-form" id="add-remark-form">
+                    <label for="new-remark-text" class="sr-only">Add new remark:</label>
+                    <textarea id="new-remark-text" placeholder="Type new remark here..."></textarea>
+                    <button type="submit">Add Remark</button>
+                </form>
+            </section>
+        </div>
+
+    </div>
+   
+<!-- Withdrawal Modal (in-page function) -->
+<div id="withdrawal-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="withdrawal-title">
+    <div class="modal-header">
+      <h2 id="withdrawal-title" style="margin:0;">New Withdrawal</h2>
+      <button id="close-withdrawal-btn" class="close-btn" data-modal="withdrawal-modal">&times;</button>
+    </div>
+
+    <form id="withdrawal-form" onsubmit="return false;">
+      <div class="form-row">
+        <label for="withdrawal-type">Type of Withdrawal</label>
+        <select id="withdrawal-type">
+          <option value="cash">Cash</option>
+          <option value="cash-chip">Cash Chip</option>
+          <option value="nn-chip">NN Chips</option>
+          <option value="bank">Bank Transfer</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label for="withdrawal-location">Withdraw From Location</label>
+        <select id="withdrawal-location"></select>
+      </div>
+
+      <div class="form-row">
+        <label for="withdrawal-amount">Amount</label>
+        <input type="number" id="withdrawal-amount" placeholder="0.00" step="0.01" min="0">
+      </div>
+
+      <div class="balance-display">
+        <div>
+          <strong>Starting Balance</strong>
+          <span id="withdrawal-start">₱0.00</span>
+        </div>
+        <div>
+          <strong>Ending Balance</strong>
+          <span id="withdrawal-end" class="ending-withdraw">₱0.00</span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="withdrawal-remarks">Remarks</label>
+        <textarea id="withdrawal-remarks" placeholder="Add transaction notes..."></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="process-withdrawal-btn">Process Withdrawal</button>
+    </form>
+  </div>
+</div>
+
+<!-- --- NEW: ADD BUY-IN MODAL --- -->
+<div id="add-buyin-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="buyin-title">
+    <div class="modal-header">
+      <h2 id="buyin-title" style="margin:0;">Add Buy-In</h2>
+      <button id="close-buyin-btn" class="close-btn" data-modal="add-buyin-modal">&times;</button>
+    </div>
+
+    <form id="buyin-form" onsubmit="return false;">
+      
+      <!-- 1. Active Game -->
+      <div class="form-row">
+        <label for="buyin-game-select">Select Active Game</label>
+        <select id="buyin-game-select" required></select>
+        <p id="buyin-game-error" class="text-red-400 text-sm" style="display: none; margin-top: 5px;">No active games found for this guest.</p>
+      </div>
+      
+      <!-- 2. Payment Type -->
+      <div class="form-row">
+        <label for="buyin-type">Payment Type</label>
+        <select id="buyin-type">
+          <option value="account">From Account</option>
+          <option value="marker">Marker (Credit Line)</option>
+          <option value="cash">Cash</option>
+          <option value="forex">Forex</option>
+          <option value="cash-chips">Cash Chips</option>
+          <option value="credit-card">Credit Card</option>
+        </select>
+      </div>
+
+      <!-- 3. Amount -->
+      <div class="form-row">
+        <label for="buyin-amount">Amount</label>
+        <input type="number" id="buyin-amount" placeholder="0.00" step="0.01" min="0" required>
+      </div>
+
+      <!-- 4. Account Section (Conditional) -->
+      <div id="buyin-account-section" style="display: none;">
+        <div class="form-row">
+          <label for="buyin-location">Withdraw From Location</label>
+          <select id="buyin-location"></select>
+        </div>
+        <div class="balance-display">
+          <div>
+            <strong>Starting Balance</strong>
+            <span id="buyin-start">₱0.00</span>
+          </div>
+          <div>
+            <strong>Ending Balance</strong>
+            <span id="buyin-end" class="ending-withdraw">₱0.00</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 5. Remarks -->
+      <div class="form-row">
+        <label for="buyin-remarks">Remarks</label>
+        <textarea id="buyin-remarks" placeholder="Add transaction notes..."></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="process-buyin-btn">Process Buy-In</button>
+    </form>
+  </div>
+</div>
+<!-- --- END: ADD BUY-IN MODAL --- -->
+
+<!-- --- NEW: SETTLEMENT MODAL --- -->
+<div id="settlement-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settlement-title">
+    <div class="modal-header">
+      <h2 id="settlement-title" style="margin:0;">Select Game to Settle</h2>
+      <button id="close-settlement-btn" class="close-btn" data-modal="settlement-modal">&times;</button>
+    </div>
+    
+    <div class="form-row">
+        <label>Select an active game to settle:</label>
+        <div id="settlement-game-list" class="flex flex-col gap-2">
+            <!-- Active games will be populated here by JS -->
+            <p class="text-gray-400">Loading active games...</p>
+        </div>
+    </div>
+
+  </div>
+</div>
+<!-- --- END: SETTLEMENT MODAL --- -->
+
+
+<!-- NEW: Message Modal (for Deposit/Withdrawal) -->
+<div id="message-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="message-title">
+      <div class="modal-header">
+        <h2 id="message-title" class="text-2xl font-bold">Transaction Processed</h2>
+        <button id="close-message-btn" class="close-btn" data-modal="message-modal">&times;</button>
+      </div>
+  
+      <p class="text-gray-300 text-lg mb-4">The transaction was successful. You can use the message below for notifications.</p>
+      
+      <!-- NEW: Message Toggles -->
+      <div class="flex items-center justify-end gap-6 mb-4">
+          <label class="flex items-center gap-2 cursor-pointer">
+              <span class="text-sm font-medium text-gray-300">Show Other Locations</span>
+              <label class="switch">
+                  <input type="checkbox" id="toggle-other-locations" checked>
+                  <span class="slider"></span>
+              </label>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+              <span class="text-sm font-medium text-gray-300">Show Outstanding Marker</span>
+              <label class="switch">
+                  <input type="checkbox" id="toggle-marker" checked>
+                  <span class="slider"></span>
+              </label>
+          </label>
+      </div>
+
+      <div class="form-row">
+          <label for="guest-message-content">Guest Notification</label>
+          <textarea id="guest-message-content" rows="16" class="font-mono text-sm bg-gray-800 border-gray-600"></textarea>
+      </div>
+
+      <div class="mt-8 pt-6 border-t border-gray-600 flex justify-end items-center gap-4">
+          <button type="button" id="send-group-telegram-btn" class="btn btn-primary">Send to Company Group</button>
+          <button type="button" id="send-guest-telegram-btn" class="btn btn-secondary">Send to Guest</button>
+      </div>
+    </div>
+</div>
+
+
+</main>
+
+  <!-- Notification placeholder -->
+  <div id="notification"></div>
+
+  <script>
+// --- Global State ---
+const STORAGE_KEY = 'account-dashboard:v1';
+const GAME_RECORD_KEY = 'gamerecord:v1';
+const TRANSACTION_HISTORY_KEY = 'transaction-history:v1';
+
+let allAccounts = [];
+let allLocations = [];
+let allGameRecords = [];
+let currentAccount = null;
+const MAX_DOCUMENTS = 3;
+let currentTransactionData = {}; // NEW: Store data for message modal
+
+// --- NEW: Send to Telegram functions ---
+function sendToTelegram(message) {
+    const encodedMessage = encodeURIComponent(message);
+    const url = `tg://share/url?text=${encodedMessage}`;
+    const newTab = window.open();
+    newTab.location.href = url;
+    
+    setTimeout(() => {
+        if (newTab.document.hasFocus && !newTab.document.hidden) {
+            newTab.close();
+            showNotification('Could not open Telegram. Please copy the message manually.', 'error');
+            fallbackCopyToClipboard(message);
+        }
+    }, 1000);
+}
+
+function sendToTelegramGuest(message, telegramId) {
+    if (telegramId) {
+        const encodedMessage = encodeURIComponent(message);
+        const url = `tg://msg_url?text=${encodedMessage}&to=${telegramId}`;
+        const newTab = window.open();
+        newTab.location.href = url;
+
+        setTimeout(() => {
+            if (newTab.document.hasFocus && !newTab.document.hidden) {
+                newTab.close();
+                sendToTelegram(message); // Fallback to general share
+            }
+        }, 1000);
+    } else {
+        sendToTelegram(message);
+    }
+}
+
+// NEW: Fallback copy function
+function fallbackCopyToClipboard(text) {
+    try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showNotification('Copied message to clipboard as a fallback!', 'success');
+    } catch (err) {
+        showNotification('Failed to copy. Please copy manually.');
+        console.error('Fallback copy failed', err);
+    }
+}
+
+
+// --- Deposit modal wiring (in-page function) ---
+const openDepositBtn = document.getElementById('open-deposit-btn');
+const depositModal = document.getElementById('deposit-modal');
+const depositLocation = document.getElementById('deposit-location');
+const depositAmount = document.getElementById('deposit-amount');
+const depositStart = document.getElementById('deposit-start');
+const depositEnd = document.getElementById('deposit-end');
+const depositForm = document.getElementById('deposit-form');
+const depositType = document.getElementById('deposit-type');
+const depositRemarks = document.getElementById('deposit-remarks');
+
+function updateDepositCalc() {
+  if (!currentAccount) return;
+  const loc = depositLocation.value || allLocations[0];
+  const start = (currentAccount.balances?.[loc]) || 0;
+  const amount = parseFloat(depositAmount.value) || 0;
+  depositStart.textContent = formatCurrency(start);
+  depositEnd.textContent = formatCurrency(start + amount);
+}
+
+function openDepositModal() {
+  if (!currentAccount) { showNotification('No guest loaded.'); return; }
+  depositLocation.innerHTML = '';
+  allLocations.forEach(loc => {
+    const opt = document.createElement('option');
+    opt.value = loc;
+    opt.textContent = loc.charAt(0).toUpperCase() + loc.slice(1);
+    depositLocation.appendChild(opt);
+  });
+  depositForm.reset();
+  updateDepositCalc();
+  openModal('deposit-modal');
+}
+
+function openModal(modalId) {
+    document.getElementById(modalId).style.display = 'flex';
+}
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+depositForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (!currentAccount) return;
+
+  const amount = parseFloat(depositAmount.value);
+  if (!amount || amount <= 0) { showNotification('Please enter a valid deposit amount.'); return; }
+
+  const loc = depositLocation.value;
+  const type = depositType.value;
+  const remarks = depositRemarks.value;
+  
+  currentAccount.balances[loc] = (currentAccount.balances[loc] || 0) + amount;
+
+  // --- MODIFIED ---
+  const logMsg = `Deposit (${type}): ${currentAccount.accountNumber} +${formatNumber(amount)} to ${loc}`;
+  if (saveState(logMsg)) { // <-- Pass log message here
+    renderBalances();
+    // addGlobalLog(...) is now deleted.
+    
+    // NEW: Log to central transaction history
+    saveTransaction({
+        accountNo: currentAccount.accountNumber,
+        type: 'Deposit',
+        amount: amount,
+        location: loc,
+        remarks: remarks || `Deposit (${type})`
+    });
+    // --- END MODIFICATION ---
+
+    // NEW: Show message modal
+    currentTransactionData = { type: 'Deposit', amount, loc, remarks };
+    const msg = generateGuestDepositMessage();
+    document.getElementById('guest-message-content').value = msg;
+    closeModal('deposit-modal');
+    openModal('message-modal');
+    
+  } else {
+    showNotification('Failed to save deposit.');
+  }
+});
+
+
+// --- Withdrawal modal wiring (in-page function) ---
+const openWithdrawalBtn = document.getElementById('open-withdrawal-btn');
+const withdrawalModal = document.getElementById('withdrawal-modal');
+const withdrawalLocation = document.getElementById('withdrawal-location');
+const withdrawalAmount = document.getElementById('withdrawal-amount');
+const withdrawalStart = document.getElementById('withdrawal-start');
+const withdrawalEnd = document.getElementById('withdrawal-end');
+const withdrawalType = document.getElementById('withdrawal-type');
+const withdrawalRemarks = document.getElementById('withdrawal-remarks');
+const withdrawalForm = document.getElementById('withdrawal-form');
+
+function updateWithdrawalCalc() {
+  if (!currentAccount) return;
+  const loc = withdrawalLocation.value || allLocations[0];
+  const start = (currentAccount.balances?.[loc]) || 0;
+  const amount = parseFloat(withdrawalAmount.value) || 0;
+  const end = start - amount;
+  withdrawalStart.textContent = formatCurrency(start);
+  withdrawalEnd.textContent = formatCurrency(end);
+}
+
+function openWithdrawalModal() {
+  if (!currentAccount) { showNotification('No guest loaded.'); return; }
+  withdrawalLocation.innerHTML = '';
+  allLocations.forEach(loc => {
+    const opt = document.createElement('option');
+    opt.value = loc;
+    opt.textContent = loc.charAt(0).toUpperCase() + loc.slice(1);
+    withdrawalLocation.appendChild(opt);
+  });
+  withdrawalForm.reset();
+  updateWithdrawalCalc();
+  openModal('withdrawal-modal');
+}
+
+openWithdrawalBtn.addEventListener('click', openWithdrawalModal);
+withdrawalLocation.addEventListener('change', updateWithdrawalCalc);
+withdrawalAmount.addEventListener('input', updateWithdrawalCalc);
+
+withdrawalForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (!currentAccount) return;
+
+  const amount = parseFloat(withdrawalAmount.value);
+  if (!amount || amount <= 0) { showNotification('Please enter a valid withdrawal amount.'); return; }
+
+  const loc = withdrawalLocation.value;
+  const type = withdrawalType.value;
+  const remarks = withdrawalRemarks.value;
+  const start = (currentAccount.balances?.[loc]) || 0;
+  
+  if (amount > start) {
+    showNotification('Insufficient funds at the selected location.');
+    return;
+  }
+
+  currentAccount.balances[loc] = start - amount;
+
+  // --- MODIFIED ---
+  const logMsg = `Withdrawal (${type}): ${currentAccount.accountNumber} -${formatNumber(amount)} from ${loc}`;
+  if (saveState(logMsg)) { // <-- Pass log message here
+    renderBalances();
+    // addGlobalLog(...) is now deleted.
+    
+    // NEW: Log to central transaction history
+    saveTransaction({
+        accountNo: currentAccount.accountNumber,
+        type: 'Withdrawal',
+        amount: -amount, // Negative for withdrawal
+        location: loc,
+        remarks: remarks || `Withdrawal (${type})`
+    });
+    // --- END MODIFICATION ---
+
+    // NEW: Show message modal
+    currentTransactionData = { type: 'Withdrawal', amount, loc, remarks };
+    const msg = generateGuestWithdrawalMessage();
+    document.getElementById('guest-message-content').value = msg;
+    closeModal('withdrawal-modal');
+    openModal('message-modal');
+
+  } else {
+    showNotification('Failed to save withdrawal.');
+  }
+});
+
+// ---
+// --- NEW: ADD BUY-IN MODAL WIRING ---
+// ---
+const openBuyInBtn = document.getElementById('open-buyin-btn');
+const buyInForm = document.getElementById('buyin-form');
+const buyInGameSelect = document.getElementById('buyin-game-select');
+const buyInGameError = document.getElementById('buyin-game-error');
+const buyInType = document.getElementById('buyin-type');
+const buyInAmount = document.getElementById('buyin-amount');
+const buyInAccountSection = document.getElementById('buyin-account-section');
+const buyInLocation = document.getElementById('buyin-location');
+const buyInStart = document.getElementById('buyin-start');
+const buyInEnd = document.getElementById('buyin-end');
+const buyInRemarks = document.getElementById('buyin-remarks');
+const processBuyInBtn = document.getElementById('process-buyin-btn');
+
+function openBuyInModal() {
+    if (!currentAccount) { showNotification('No guest loaded.'); return; }
+
+    // Find active games
+    const activeGames = allGameRecords.filter(g => g.accountNo === currentAccount.accountNumber && g.status === 'active');
+    
+    buyInGameSelect.innerHTML = '';
+    if (activeGames.length === 0) {
+        buyInGameError.style.display = 'block';
+        buyInGameSelect.disabled = true;
+        processBuyInBtn.disabled = true;
+    } else {
+        buyInGameError.style.display = 'none';
+        buyInGameSelect.disabled = false;
+        processBuyInBtn.disabled = false;
+        
+        activeGames.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g.id;
+            opt.textContent = `Game @ ${g.location} (${g.style}) - Started ${g.date}`;
+            buyInGameSelect.appendChild(opt);
+        });
+    }
+    
+    // Populate location dropdown (for account payments)
+    buyInLocation.innerHTML = '';
+    allLocations.forEach(loc => {
+        const opt = document.createElement('option');
+        opt.value = loc;
+        opt.textContent = loc.charAt(0).toUpperCase() + loc.slice(1);
+        buyInLocation.appendChild(opt);
+    });
+
+    buyInForm.reset();
+    toggleBuyInPaymentOptions();
+    updateBuyInCalc();
+    openModal('add-buyin-modal');
+}
+
+function toggleBuyInPaymentOptions() {
+    if (buyInType.value === 'account') {
+        buyInAccountSection.style.display = 'block';
+    } else {
+        buyInAccountSection.style.display = 'none';
+    }
+}
+
+function updateBuyInCalc() {
+    if (!currentAccount) return;
+    const loc = buyInLocation.value || allLocations[0];
+    const start = (currentAccount.balances?.[loc]) || 0;
+    const amount = parseFloat(buyInAmount.value) || 0;
+    const end = start - amount;
+    buyInStart.textContent = formatCurrency(start);
+    buyInEnd.textContent = formatCurrency(end);
+}
+
+function handleBuyInSubmit(e) {
+    e.preventDefault();
+    if (!currentAccount) return;
+
+    const gameId = buyInGameSelect.value;
+    const paymentType = buyInType.value;
+    const amount = parseFloat(buyInAmount.value);
+    const location = buyInLocation.value;
+    const remarks = buyInRemarks.value;
+
+    if (!gameId) {
+        showNotification('No active game selected.');
+        return;
+    }
+    if (!amount || amount <= 0) {
+        showNotification('Please enter a valid amount.');
+        return;
+    }
+
+    // Find the game
+    const gameIndex = allGameRecords.findIndex(g => g.id === gameId);
+    if (gameIndex === -1) {
+        showNotification('Error: Selected game not found.');
+        return;
+    }
+    const game = allGameRecords[gameIndex];
+
+    let logMessage = null;
+    let showMessageModal = false;
+
+    // --- Process Payment ---
+    if (paymentType === 'account') {
+        const startBalance = (currentAccount.balances?.[location]) || 0;
+        if (amount > startBalance) {
+            showNotification('Insufficient funds at this location.');
+            return;
+        }
+        // 1. Debit account
+        currentAccount.balances[location] = startBalance - amount;
+        
+        // 2. Log to main log
+        logMessage = `Add Buy-In: ${currentAccount.accountNumber} -${formatNumber(amount)} from ${location} for game ${game.id}`;
+        
+        // 3. Log to transaction history
+        saveTransaction({
+            accountNo: currentAccount.accountNumber,
+            type: 'Game Buy-in',
+            amount: -amount, // Negative for withdrawal
+            location: location,
+            remarks: `Add Buy-In to game ${game.id}. ${remarks}`
+        });
+        
+        showMessageModal = true;
+        currentTransactionData = { type: 'Withdrawal', amount, loc: location, remarks: `Add Buy-In to game ${game.id}` };
+
+    } else {
+        // Payment is Cash, Marker, etc. No account balance change.
+        // 1. Log to main log
+        logMessage = `Add Buy-In: ${currentAccount.accountNumber} +${formatNumber(amount)} (${paymentType}) for game ${game.id}`;
+    }
+
+    // --- Update Game Record ---
+    game.capital += amount;
+    game.remarks = (game.remarks || '') + ` [Add Buy-In: ${formatNumber(amount)} (${paymentType})] ${remarks}`.trim();
+    if (!saveGameRecords()) {
+        showNotification('CRITICAL ERROR: Failed to save game record. Aborting.');
+        // Rollback account debit if it happened
+        if (paymentType === 'account') {
+            currentAccount.balances[location] += amount;
+        }
+        return;
+    }
+
+    // --- Save Account State (with log) ---
+    if (saveState(logMessage)) {
+        renderBalances(); // Re-render balances
+        showNotification('Buy-In Added Successfully!', 'success');
+        closeModal('add-buyin-modal');
+
+        if (showMessageModal) {
+            const msg = generateGuestWithdrawalMessage();
+            document.getElementById('guest-message-content').value = msg;
+            openModal('message-modal');
+        }
+
+    } else {
+        showNotification('CRITICAL ERROR: Failed to save account state.');
+        // Rollback
+        if (paymentType === 'account') {
+            currentAccount.balances[location] += amount;
+        }
+        game.capital -= amount;
+        saveGameRecords();
+    }
+}
+// ---
+// --- END: ADD BUY-IN MODAL WIRING ---
+// ---
+
+// ---
+// --- NEW: SETTLEMENT MODAL WIRING ---
+// ---
+const openSettlementBtn = document.getElementById('open-settlement-btn');
+const settlementGameList = document.getElementById('settlement-game-list');
+
+function openSettlementModal() {
+    if (!currentAccount) { showNotification('No guest loaded.'); return; }
+    
+    // Find active games
+    const activeGames = allGameRecords.filter(g => g.accountNo === currentAccount.accountNumber && g.status === 'active');
+    
+    settlementGameList.innerHTML = ''; // Clear previous list
+    
+    if (activeGames.length === 0) {
+        settlementGameList.innerHTML = '<p class="text-gray-400 italic">No active games found for this guest.</p>';
+    } else {
+        activeGames.forEach(game => {
+            const gameButton = document.createElement('button');
+            gameButton.className = 'settlement-game-item';
+            gameButton.textContent = `Game @ ${game.location} (${game.style}) - Started ${game.date} ${game.time}`;
+            gameButton.type = 'button'; // Ensure it's not a submit button
+            
+            // This is the key part: redirect to gamerecord.html with new 'settle' param
+            gameButton.onclick = () => {
+                location.href = `gamerecord.html?guest=${currentAccount.accountNumber}&settle=${game.id}`;
+            };
+            
+            settlementGameList.appendChild(gameButton);
+        });
+    }
+    
+    openModal('settlement-modal');
+}
+// ---
+// --- END: SETTLEMENT MODAL WIRING ---
+// ---
+
+
+    // --- DEFAULT DATA (FIX) ---
+    function initializeDefaultData() {
+        const DEFAULT_LOCATIONS = ['cod', 'maxim', 'solaire', 'okada', 'other'];
+        const DEFAULT_ACCOUNTS = [
+            { id: '1', accountNumber: '1001-A', name: 'John Doe', agent: 'Agent Smith', balances: { cod: 150, maxim: 200,  solaire: 0,    okada: 50,  other: 10 }, mobile: '+15551234567', address: '123 Casino St', email: 'john@email.com', occupation: 'Entrepreneur', telegram: '@johndoe', sof: 'Business', creditLine: 500000, promo: 'none', profilePicture: null, documents: [], remarksLog: [] },
+            { id: '2', accountNumber: '1002-B', name: 'Jane Smith', agent: 'Agent Brown', balances: { cod: 0,   maxim: 500,  solaire: 1200, okada: 0,   other: 0  }, mobile: '+15557654321', address: '456 Gamble Ave', email: 'jane@email.com', occupation: 'Developer', telegram: '@janesmith', sof: 'Salary', creditLine: 100000, promo: 'share', profilePicture: null, documents: [], remarksLog: [] },
+            { id: '3', accountNumber: 'BSM001', name: 'Robert Brown', agent: 'Agent Smith', balances: { cod: 75,  maxim: 0,    solaire: 0,    okada: 300, other: 25 }, mobile: '+15559876543', address: '789 Luck Blvd', email: 'robert@email.com', occupation: 'Investor', telegram: '@robert', sof: 'Investments', creditLine: 1000000, promo: 'losing', profilePicture: null, documents: [] }
+        ];
+        
+        const normalizedAccounts = DEFAULT_ACCOUNTS.map(acc => ({
+            ...{ mobile: '', address: '', email: '', occupation: '', telegram: '', sof: '', creditLine: 0, promo: 'none', profilePicture: null, documents: [], remarksLog: [] },
+            ...acc
+        }));
+
+        const defaultState = {
+            accounts: normalizedAccounts,
+            locations: DEFAULT_LOCATIONS,
+            showCoreLocations: true,
+            changeLog: []
+        };
+        
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultState));
+            allAccounts = normalizedAccounts;
+            allLocations = DEFAULT_LOCATIONS;
+            return true;
+        } catch (e) {
+            console.error("Failed to initialize default data:", e);
+            return false;
+        }
+    }
+
+    // --- Utility Functions ---
+    function formatCurrency(amount) {
+        if (typeof amount !== 'number') {
+            amount = parseFloat(amount) || 0;
+        }
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'PHP',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(amount);
+    }
+    
+    function formatNumber(amount) {
+         if (typeof amount !== 'number') {
+            amount = parseFloat(amount) || 0;
+        }
+         return new Intl.NumberFormat('en-US', {
+            style: 'decimal',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(amount);
+    }
+
+    function showNotification(message, type = 'error') {
+        const notification = document.getElementById('notification');
+        if (!notification) {
+            if (type === 'success') {
+                console.log(`Success: ${message}`);
+            } else {
+                console.error(`Error: ${message}`);
+            }
+            return;
+        }
+        
+        notification.textContent = message;
+        notification.className = type === 'success' ? 'success' : 'error';
+        notification.classList.add('show');
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 3000);
+    }
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    // --- NEW: Universal saveTransaction function ---
+    function saveTransaction(txData) {
+        try {
+            const raw = localStorage.getItem(TRANSACTION_HISTORY_KEY);
+            const allTxs = raw ? JSON.parse(raw) : [];
+            
+            const newTx = {
+                id: `tx-${new Date().getTime()}`,
+                timestamp: new Date().toISOString(),
+                status: 'completed',
+                ...txData
+            };
+
+            allTxs.push(newTx);
+            localStorage.setItem(TRANSACTION_HISTORY_KEY, JSON.stringify(allTxs));
+            return true;
+        } catch (e) {
+            console.error('Failed to save transaction:', e);
+            showNotification('Error saving transaction log.');
+            return false;
+        }
+    }
+    
+    // --- DELETED addGlobalLog FUNCTION ---
+    // (This function was removed)
+
+
+    // --- Data Functions ---
+    function loadState() {
+        try {
+            // Load Accounts
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) {
+                console.log("No data found in localStorage. Initializing default data...");
+                return initializeDefaultData();
+            }
+            const state = JSON.parse(raw);
+            if (state && Array.isArray(state.accounts) && Array.isArray(state.locations)) {
+                allAccounts = state.accounts;
+                allLocations = state.locations;
+                allAccounts.forEach(acc => {
+                    if (!acc.hasOwnProperty('mobile')) acc.mobile = '';
+                    if (!acc.hasOwnProperty('address')) acc.address = '';
+                    if (!acc.hasOwnProperty('email')) acc.email = '';
+                    if (!acc.hasOwnProperty('occupation')) acc.occupation = '';
+                    if (!acc.hasOwnProperty('telegram')) acc.telegram = '';
+                    if (!acc.hasOwnProperty('sof')) acc.sof = '';
+                    if (!acc.hasOwnProperty('creditLine')) acc.creditLine = 0;
+                    if (!acc.hasOwnProperty('promo')) acc.promo = 'none';
+                    if (!acc.hasOwnProperty('profilePicture')) acc.profilePicture = null;
+                    if (!acc.hasOwnProperty('documents')) acc.documents = [];
+                    // NEW: Migrate old remarks string to new remarksLog array
+                    if (typeof acc.remarks === 'string' && acc.remarks) {
+                        acc.remarksLog = [{
+                            timestamp: new Date().toISOString(),
+                            text: `Legacy Note: ${acc.remarks}`
+                        }];
+                        delete acc.remarks; // Remove old string
+                    } else if (!Array.isArray(acc.remarksLog)) {
+                        acc.remarksLog = [];
+                    }
+                });
+            } else {
+                 console.warn("Invalid data found. Re-initializing default data.");
+                 return initializeDefaultData();
+            }
+            
+            // Load Game Records for status
+            const rawGames = localStorage.getItem(GAME_RECORD_KEY);
+            allGameRecords = rawGames ? JSON.parse(rawGames) : [];
+            
+            return true;
+            
+        } catch (e) {
+            console.error("Failed to load state, re-initializing:", e);
+            return initializeDefaultData();
+        }
+    }
+
+    // --- REPLACED saveState FUNCTION ---
+    function saveState(logMessage = null) {
+        try {
+            if (currentAccount) {
+                 const accountIndex = allAccounts.findIndex(acc => acc.id === currentAccount.id);
+                if (accountIndex !== -1) {
+                    allAccounts[accountIndex] = currentAccount;
+                }
+            }
+
+            const currentState = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            
+            // --- NEW LOGGING LOGIC ---
+            let updatedLog = currentState.changeLog || [];
+            if (logMessage) {
+                const ts = new Date().toLocaleString();
+                const msg = `[${ts}] ${logMessage}`;
+                updatedLog.unshift(msg);
+                updatedLog = updatedLog.slice(0, 50); // Prune log to last 50 entries
+            }
+            // --- END NEW LOGIC ---
+
+            const newState = {
+                ...currentState,
+                accounts: allAccounts,
+                locations: allLocations,
+                changeLog: updatedLog // <-- Save the updated log
+            };
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
+            return true;
+        } catch (e) {
+            console.error('Save failed:', e);
+            showNotification('Failed to save data (storage full?)');
+            return false;
+        }
+    }
+
+    // --- NEW: saveGameRecords FUNCTION ---
+    // (Need this to update the game capital)
+    function saveGameRecords() {
+        try {
+            localStorage.setItem(GAME_RECORD_KEY, JSON.stringify(allGameRecords));
+            return true;
+        } catch (e) {
+            console.error('Failed to save game records:', e);
+            showNotification('Error saving game records.');
+            return false;
+        }
+    }
+    
+    function getGuestCodeFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('guest');
+    }
+
+    // --- Render Functions ---
+    function renderAccountDetails() {
+        if (!currentAccount) return;
+
+        document.getElementById('guest-name').textContent = currentAccount.name || 'N/A';
+        document.getElementById('acc-no').value = currentAccount.accountNumber || 'N/A';
+        document.getElementById('agent').value = currentAccount.agent || '-';
+        document.getElementById('mobile').value = currentAccount.mobile || '-';
+        document.getElementById('address').value = currentAccount.address || '-';
+        document.getElementById('email').value = currentAccount.email || '-';
+        document.getElementById('occupation').value = currentAccount.occupation || '-';
+        document.getElementById('telegram').value = currentAccount.telegram || '-';
+        document.getElementById('sof').value = currentAccount.sof || '-';
+        
+        const creditLineInput = document.getElementById('credit-line');
+        creditLineInput.value = formatCurrency(currentAccount.creditLine || 0);
+        creditLineInput.dataset.rawAmount = currentAccount.creditLine || 0;
+        
+        const profileImg = document.getElementById('profile-img');
+        if (currentAccount.profilePicture) {
+            profileImg.src = currentAccount.profilePicture;
+        } else {
+            const firstLetter = currentAccount.name ? currentAccount.name.charAt(0).toUpperCase() : 'G';
+            profileImg.src = `https://placehold.co/150x150/888/FFF?text=${firstLetter}`;
+        }
+        
+        // Render Game Status
+        const activeGames = allGameRecords.filter(game => 
+            game.accountNo === currentAccount.accountNumber && game.status === 'active'
+        ).length;
+        
+        const gameStatusEl = document.getElementById('game-status');
+        if (activeGames > 0) {
+            gameStatusEl.textContent = `${activeGames} Active Game${activeGames > 1 ? 's' : ''}`;
+            gameStatusEl.className = 'game-status active';
+        } else {
+            gameStatusEl.textContent = 'No Active Game';
+            gameStatusEl.className = 'game-status inactive';
+        }
+
+        renderPromotionOptions(currentAccount.promo || 'none');
+        renderDocuments();
+        renderRemarksLog(); // NEW
+    }
+
+    function renderBalances() {
+        if (!currentAccount) return;
+        
+        const balanceGrid = document.getElementById('balance-grid');
+        balanceGrid.innerHTML = '';
+        let totalBalance = 0;
+
+        allLocations.forEach(loc => {
+            const balance = currentAccount.balances[loc] || 0;
+            totalBalance += balance;
+
+            const card = document.createElement('div');
+            card.className = 'balance-card';
+            card.innerHTML = `
+                <p class="location">${loc}</p>
+                <p class="amount">${formatCurrency(balance)}</p>
+            `;
+            balanceGrid.appendChild(card);
+        });
+
+        document.getElementById('total-balance').textContent = formatCurrency(totalBalance);
+    }
+    
+    function renderPromotionOptions(selectedPromo) {
+        const promoSelect = document.getElementById('promo-select');
+        let found = false;
+        Array.from(promoSelect.options).forEach(option => {
+            if (option.value === selectedPromo) {
+                found = true;
+            }
+        });
+
+        if (!found && selectedPromo !== 'none' && selectedPromo !== 'share' && selectedPromo !== 'losing' && selectedPromo !== 'other') {
+            const newOption = new Option(selectedPromo, selectedPromo, true, true);
+            promoSelect.add(newOption);
+        } else {
+            promoSelect.value = selectedPromo;
+        }
+    }
+
+    function renderDocuments() {
+        const docList = document.getElementById('doc-list');
+        const docUploadArea = document.getElementById('doc-upload-area');
+        docList.innerHTML = '';
+        
+        if (!currentAccount.documents || currentAccount.documents.length === 0) {
+            docList.innerHTML = '<p class="text-gray-500 italic">No documents uploaded.</p>';
+        } else {
+            currentAccount.documents.forEach((doc, index) => {
+                const docItem = document.createElement('div');
+                docItem.className = 'document-item';
+                docItem.innerHTML = `
+                    <a href="${doc.data}" target="_blank" title="${doc.name}">${doc.name}</a>
+                    <button class="delete-doc-btn" data-index="${index}" style="display: none;">&times;</button>
+                `;
+                docList.appendChild(docItem);
+            });
+        }
+        
+        bindDocDeleteButtons();
+        
+        const isEditMode = document.getElementById("edit-details-btn").classList.contains('save-mode');
+        if (isEditMode && (!currentAccount.documents || currentAccount.documents.length < MAX_DOCUMENTS)) {
+            docUploadArea.style.display = 'block';
+        } else {
+            docUploadArea.style.display = 'none';
+        }
+        
+        if (isEditMode) {
+             document.querySelectorAll('.delete-doc-btn').forEach(btn => btn.style.display = 'block');
+        }
+    }
+    
+    // NEW: Render Remarks Log
+    function renderRemarksLog() {
+        const logWrapper = document.getElementById('remarks-log');
+        logWrapper.innerHTML = '';
+        
+        if (!currentAccount.remarksLog || currentAccount.remarksLog.length === 0) {
+            logWrapper.innerHTML = '<p class="text-gray-500 italic">No remarks added.</p>';
+            return;
+        }
+        
+        // MODIFIED: Show oldest first
+        currentAccount.remarksLog.forEach(entry => {
+            const p = document.createElement('p');
+            const timestamp = new Date(entry.timestamp).toLocaleString();
+            p.innerHTML = `<span class="remark-time">${timestamp}</span> ${entry.text}`;
+            logWrapper.appendChild(p);
+        });
+    }
+
+    // --- Event Handlers ---
+    function handleEditSaveClick() {
+        const editButton = document.getElementById("edit-details-btn");
+        const editableFields = document.querySelectorAll(".editable-field");
+        const creditLineInput = document.getElementById('credit-line');
+        
+        const profileActions = document.getElementById('profile-pic-actions');
+        const docUploadArea = document.getElementById('doc-upload-area');
+        const docDeleteButtons = document.querySelectorAll('.delete-doc-btn');
+        const addRemarkForm = document.getElementById('add-remark-form'); // NEW
+
+        if (editButton.textContent === "Edit Details") {
+            // --- ENTER EDIT MODE ---
+            editableFields.forEach(field => {
+                field.removeAttribute("readonly");
+            });
+
+            creditLineInput.value = creditLineInput.dataset.rawAmount || '0'; 
+            
+            profileActions.style.display = 'flex';
+            if (!currentAccount.documents || currentAccount.documents.length < MAX_DOCUMENTS) {
+                docUploadArea.style.display = 'block';
+            }
+            docDeleteButtons.forEach(btn => btn.style.display = 'block');
+            addRemarkForm.style.display = 'block'; // NEW: Show remark form
+
+            editButton.textContent = "Save Details";
+            editButton.classList.add("save-mode");
+        } else {
+            // --- LEAVE EDIT MODE (SAVE) ---
+            
+            currentAccount.agent = document.getElementById('agent').value;
+            currentAccount.mobile = document.getElementById('mobile').value;
+            currentAccount.address = document.getElementById('address').value;
+            currentAccount.email = document.getElementById('email').value;
+            currentAccount.occupation = document.getElementById('occupation').value;
+            currentAccount.telegram = document.getElementById('telegram').value;
+            currentAccount.sof = document.getElementById('sof').value;
+            
+            const newCreditLine = parseFloat(creditLineInput.value) || 0;
+            currentAccount.creditLine = newCreditLine;
+            creditLineInput.dataset.rawAmount = newCreditLine; 
+            
+            if (saveState()) {
+                editableFields.forEach(field => {
+                    field.setAttribute("readonly", true);
+                });
+                
+                creditLineInput.value = formatCurrency(newCreditLine);
+
+                profileActions.style.display = 'none';
+                docUploadArea.style.display = 'none';
+                docDeleteButtons.forEach(btn => btn.style.display = 'none');
+                addRemarkForm.style.display = 'none'; // NEW: Hide remark form
+
+                editButton.textContent = "Edit Details";
+                editButton.classList.remove("save-mode");
+                showNotification("Details Saved!", "success");
+            } else {
+                showNotification("Failed to save details!");
+            }
+        }
+    }
+
+    function handleAddPromo() {
+        const newPromo = prompt("Enter new promotion name:");
+        if (newPromo && newPromo.trim() !== '') {
+            const promoSelect = document.getElementById('promo-select');
+            const newOption = new Option(newPromo.trim(), newPromo.trim(), true, true);
+            promoSelect.add(newOption);
+            handlePromoChange();
+        }
+    }
+    
+    function handlePromoChange() {
+        const promoSelect = document.getElementById('promo-select');
+        currentAccount.promo = promoSelect.value;
+        saveState();
+        showNotification('Promotion status saved.', 'success');
+    }
+
+    // --- NEW: Add Remark Handler ---
+    function handleAddRemark(event) {
+        event.preventDefault();
+        const remarkInput = document.getElementById('new-remark-text');
+        const remarkText = remarkInput.value.trim();
+        
+        if (!remarkText) {
+            showNotification('Remark cannot be empty.', 'error');
+            return;
+        }
+
+        if (!Array.isArray(currentAccount.remarksLog)) {
+            currentAccount.remarksLog = [];
+        }
+        
+        currentAccount.remarksLog.push({
+            timestamp: new Date().toISOString(),
+            text: remarkText
+        });
+
+        if (saveState()) {
+            renderRemarksLog();
+            remarkInput.value = ''; // Clear input
+            showNotification('Remark added!', 'success');
+        } else {
+            showNotification('Failed to save remark.', 'error');
+        }
+    }
+    
+    // --- Photo Handlers ---
+    async function handlePhotoUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        try {
+            const base64 = await fileToBase64(file);
+            currentAccount.profilePicture = base64;
+            document.getElementById('profile-img').src = base64;
+            if (saveState()) {
+                showNotification('Profile photo updated!', 'success');
+            }
+        } catch (error) {
+            console.error('Photo upload failed:', error);
+            showNotification('Photo upload failed.');
+        }
+        event.target.value = null;
+    }
+
+    function handleDeletePhoto() {
+        if (!confirm('Are you sure you want to delete the profile photo?')) return;
+        
+        currentAccount.profilePicture = null;
+        const firstLetter = currentAccount.name ? currentAccount.name.charAt(0).toUpperCase() : 'G';
+        document.getElementById('profile-img').src = `https://placehold.co/150x150/888/FFF?text=${firstLetter}`;
+        
+        if (saveState()) {
+            showNotification('Profile photo deleted!', 'success');
+        }
+    }
+
+    // --- Document Handlers ---
+    async function handleDocUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        if (!currentAccount.documents) {
+            currentAccount.documents = [];
+        }
+
+        if (currentAccount.documents.length >= MAX_DOCUMENTS) {
+            showNotification('Maximum of 3 documents already uploaded.');
+            return;
+        }
+
+        try {
+            const base64 = await fileToBase64(file);
+            currentAccount.documents.push({
+                name: file.name,
+                data: base64
+            });
+            
+            if (saveState()) {
+                renderDocuments();
+                showNotification('Document uploaded!', 'success');
+            }
+        } catch (error) {
+            console.error('Document upload failed:', error);
+            showNotification('Document upload failed.');
+        }
+         event.target.value = null;
+    }
+    
+    function bindDocDeleteButtons() {
+        document.querySelectorAll('.delete-doc-btn').forEach(button => {
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            newButton.addEventListener('click', (e) => {
+                const index = parseInt(e.currentTarget.dataset.index, 10);
+                if (confirm(`Are you sure you want to delete this document?`)) {
+                    currentAccount.documents.splice(index, 1);
+                    if (saveState()) {
+                        renderDocuments();
+                        showNotification('Document deleted!', 'success');
+                    }
+                }
+            });
+        });
+    }
+
+    // --- NEW: Message Generation for Deposit/Withdrawal ---
+    function generateGuestWithdrawalMessage() {
+        const { type, amount, loc } = currentTransactionData;
+        const locUpper = loc.toUpperCase();
+        const now = new Date();
+        const ts = `${now.getMonth() + 1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        
+        const endBalance = currentAccount.balances[loc] || 0;
+        const startBalance = endBalance + amount; // Balance before this TX
+
+        const showOtherLocations = document.getElementById('toggle-other-locations').checked;
+        const showMarker = document.getElementById('toggle-marker').checked;
+
+        let otherBalances = '';
+        let grandTotal = endBalance;
+
+        if (showOtherLocations) {
+            allLocations.forEach(l => {
+                if (l === loc) return; 
+                const balance = currentAccount.balances[l] || 0;
+                otherBalances += `-${l.toUpperCase()} BALANCE: ${formatNumber(balance)}\n`;
+                grandTotal += balance;
+            });
+            if (otherBalances) {
+                otherBalances = " [Other Balance]\n" + otherBalances;
+            }
+        } else {
+             allLocations.forEach(l => {
+                if (l === loc) return; 
+                grandTotal += currentAccount.balances[l] || 0;
+            });
+        }
+
+        let markerLine = '';
+        if (showMarker) {
+            markerLine = `-OUTSTANDING MARKER: ${formatNumber(currentAccount.creditLine || 0)}\n`;
+        }
+
+        return `
+☀️GOOD DAY PO! DEAR ${currentAccount.name} (${currentAccount.accountNumber}) ☀️
+
+【YOUR PREVIOUS BALANCE: ${formatNumber(startBalance)}】
+———————————————————————————
+● WITHDRAWAL  -${formatNumber(amount)} (${ts})
+———————————————————————————
+【TOTAL ${locUpper} BALANCE: ${formatNumber(endBalance)}】
+${otherBalances.trim()}
+${markerLine.trim()}
+Grand Total Balance: ${formatNumber(grandTotal)}
+
+This is Betrnk ${locUpper} cage. ❤️Thank you po!
+        `.trim();
+    }
+    
+    function generateGuestDepositMessage() {
+        const { type, amount, loc } = currentTransactionData;
+        const locUpper = loc.toUpperCase();
+        const now = new Date();
+        const ts = `${now.getMonth() + 1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        
+        const endBalance = currentAccount.balances[loc] || 0;
+        const startBalance = endBalance - amount; // Balance before this TX
+
+        const showOtherLocations = document.getElementById('toggle-other-locations').checked;
+        const showMarker = document.getElementById('toggle-marker').checked;
+
+        let otherBalances = '';
+        let grandTotal = endBalance;
+
+        if (showOtherLocations) {
+            allLocations.forEach(l => {
+                if (l === loc) return; 
+                const balance = currentAccount.balances[l] || 0;
+                otherBalances += `-${l.toUpperCase()} BALANCE: ${formatNumber(balance)}\n`;
+                grandTotal += balance;
+            });
+            if (otherBalances) {
+                otherBalances = " [Other Balance]\n" + otherBalances;
+            }
+        } else {
+             allLocations.forEach(l => {
+                if (l === loc) return; 
+                grandTotal += currentAccount.balances[l] || 0;
+            });
+        }
+
+        let markerLine = '';
+        if (showMarker) {
+            markerLine = `-OUTSTANDING MARKER: ${formatNumber(currentAccount.creditLine || 0)}\n`;
+        }
+        
+        return `
+☀️GOOD DAY PO! DEAR ${currentAccount.name} (${currentAccount.accountNumber}) ☀️
+
+【YOUR PREVIOUS BALANCE: ${formatNumber(startBalance)}】
+———————————————————————————
+● DEPOSIT  +${formatNumber(amount)} (${ts})
+———————————————————————————
+【TOTAL ${locUpper} BALANCE: ${formatNumber(endBalance)}】
+${otherBalances.trim()}
+${markerLine.trim()}
+Grand Total Balance: ${formatNumber(grandTotal)}
+
+This is Betrnk ${locUpper} cage. ❤️Thankyou po!
+        `.trim();
+    }
+
+
+    // --- Page Initializer ---
+    document.addEventListener("DOMContentLoaded", function() {
+        
+        if (!loadState()) {
+            document.getElementById('guest-name').textContent = "Error";
+            document.querySelector('.main-content').innerHTML = `<h1 style="color: #f44336;">Error: Could not load or initialize account data.</h1>`;
+            return;
+        }
+
+        const guestCode = getGuestCodeFromURL();
+        if (!guestCode) {
+            document.getElementById('guest-name').textContent = "No Guest";
+            document.querySelector('.main-content').innerHTML = `<h1>No Guest Specified</h1><p>Please go back to the main menu (dashboard.html) and enter a guest code.</p>`;
+            return;
+        }
+
+        currentAccount = allAccounts.find(acc => acc.accountNumber.toLowerCase() === guestCode.toLowerCase());
+
+        if (!currentAccount) {
+            document.getElementById('guest-name').textContent = "Not Found";
+            document.querySelector('.main-content').innerHTML = `<h1>Account Not Found</h1><p>Could not find an account with the code: <strong>${guestCode}</strong></p>`;
+            return;
+        }
+        
+        // --- Account Found! Render Page ---
+        renderAccountDetails();
+        renderBalances();
+
+        // --- Bind Event Listeners ---
+        document.getElementById("edit-details-btn").addEventListener("click", handleEditSaveClick);
+        document.getElementById("add-promo-btn").addEventListener("click", handleAddPromo);
+        document.getElementById("promo-select").addEventListener("change", handlePromoChange);
+        document.getElementById("add-remark-form").addEventListener("submit", handleAddRemark); // NEW
+        
+        // Photo Listeners
+        document.getElementById("upload-photo-input").addEventListener("change", handlePhotoUpload);
+        document.getElementById("delete-photo-btn").addEventListener("click", handleDeletePhoto);
+        document.getElementById("doc-upload-input").addEventListener("change", handleDocUpload);
+        
+        // Modal Close Buttons
+        document.querySelectorAll('.close-btn').forEach(btn => {
+            btn.addEventListener('click', () => closeModal(btn.dataset.modal));
+        });
+        
+        // Deposit/Withdrawal Balance Listeners
+        openDepositBtn.addEventListener('click', openDepositModal);
+        depositLocation.addEventListener('change', updateDepositCalc);
+        depositAmount.addEventListener('input', updateDepositCalc);
+
+        // --- NEW: Buy-In Listeners ---
+        openBuyInBtn.addEventListener('click', openBuyInModal);
+        buyInType.addEventListener('change', toggleBuyInPaymentOptions);
+        buyInLocation.addEventListener('change', updateBuyInCalc);
+        buyInAmount.addEventListener('input', updateBuyInCalc);
+        buyInForm.addEventListener('submit', handleBuyInSubmit);
+        // --- END: Buy-In Listeners ---
+        
+        // --- NEW: Settlement Listener ---
+        openSettlementBtn.addEventListener('click', openSettlementModal);
+        // --- END: Settlement Listener ---
+
+        // Message Modal Listeners
+        document.getElementById('toggle-other-locations').addEventListener('change', () => {
+            const msg = currentTransactionData.type === 'Deposit' ? generateGuestDepositMessage() : generateGuestWithdrawalMessage();
+            document.getElementById('guest-message-content').value = msg;
+        });
+        document.getElementById('toggle-marker').addEventListener('change', () => {
+            const msg = currentTransactionData.type === 'Deposit' ? generateGuestDepositMessage() : generateGuestWithdrawalMessage();
+            document.getElementById('guest-message-content').value = msg;
+        });
+        document.getElementById('send-group-telegram-btn').addEventListener('click', () => {
+            sendToTelegram(document.getElementById('guest-message-content').value);
+        });
+        document.getElementById('send-guest-telegram-btn').addEventListener('click', () => {
+            const telegramId = currentAccount ? (currentAccount.telegram || '').replace('@', '') : '';
+            sendToTelegramGuest(document.getElementById('guest-message-content').value, telegramId);
+        });
+
+        
+        // Sidebar Navigation Buttons
+        document.getElementById('start-game-btn').addEventListener('click', () => {
+            if (currentAccount) {
+                location.href = `startgame.html?guest=${currentAccount.accountNumber}`;
+            }
+        });
+        document.getElementById('open-gamerecord-btn').addEventListener('click', () => {
+            if (currentAccount) {
+                location.href = `gamerecord.html?guest=${currentAccount.accountNumber}`;
+            }
+        });
+        document.getElementById('open-txhistory-btn').addEventListener('click', () => {
+            if (currentAccount) {
+                location.href = `transactionhistory.html?guest=${currentAccount.accountNumber}`;
+            }
+        });
+        
+        // Storage Listener
+        window.addEventListener('storage', (e) => {
+            if (e.key === STORAGE_KEY || e.key === GAME_RECORD_KEY) {
+                loadState(); 
+                const updatedAccount = allAccounts.find(acc => acc.id === currentAccount.id);
+                
+                if (updatedAccount) {
+                    currentAccount = updatedAccount;
+                    renderAccountDetails();
+                    renderBalances();
+                } else {
+                    document.getElementById('guest-name').textContent = "Deleted";
+                    document.querySelector('.main-content').innerHTML = `<h1>Account Deleted</h1><p>This account was deleted in another tab.</p>`;
+                }
+            }
+        });
+    });
+  </script>
+</body>
+</html>
