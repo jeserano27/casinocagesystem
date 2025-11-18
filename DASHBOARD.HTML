@@ -63,14 +63,16 @@
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
 
-  <main class="w-full max-w-4xl mx-auto">
+  <!-- Main container maximized -->
+  <main class="w-full max-w-[95%] mx-auto">
     <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl">
       
       <h1 class="text-3xl font-bold text-center text-white mb-8">
         Casino Cage System
       </h1>
 
-      <section id="guest-entry" class="mb-10 p-6 bg-gray-900 rounded-xl">
+      <!-- Top Guest Entry Section -->
+      <section id="guest-entry" class="mb-10 p-6 bg-gray-900 rounded-xl max-w-4xl mx-auto">
         <h2 class="text-xl font-semibold text-center text-gray-200 mb-4">Go to Guest Account</h2>
         <div class="flex flex-col sm:flex-row gap-4">
           <input 
@@ -89,46 +91,66 @@
         </div>
       </section>
 
+      <!-- Main Navigation Grid - Maximized Space -->
       <section id="main-navigation">
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <!-- 
+          MODIFIED: 
+          Using grid-cols-2 on small screens, 4 on medium, 5 on large to maximize horizontal space.
+        -->
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
           
-          <button onclick="location.href='account2.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
+          <!-- 1. Accounts -->
+          <button onclick="location.href='account2.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md h-32 flex items-center justify-center text-center">
             Accounts
           </button>
           
-          <button onclick="location.href='mainbank.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
+          <!-- 2. Main Bank -->
+          <button onclick="location.href='mainbank.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md h-32 flex items-center justify-center text-center">
             Main Bank
           </button>
           
-          <button onclick="location.href='forex.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
-            Forex
-          </button>
-          
-          <button onclick="location.href='chipbank.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
-            Chip Bank
-          </button>
-
-          <button onclick="location.href='reimbursement.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
-            Reimbursement
-          </button>
-          
-          <button onclick="location.href='cagereport.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
-            Cage Report
-          </button>
-          
-          <button onclick="location.href='otherreceipt.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
-            Other Receipt
-          </button>
-          
-          <button onclick="location.href='transactionhistory.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
-            Transaction History
-          </button>
-          
-          <button onclick="location.href='marker.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
+          <!-- 3. Marker Bank -->
+          <button onclick="location.href='markerbank.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md h-32 flex items-center justify-center text-center">
             Marker Bank
           </button>
 
-          <button id="open-settings-btn" class="p-6 bg-gray-600 hover:bg-red-700 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
+          <!-- 4. Game Record -->
+          <button onclick="location.href='gamerecord.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md h-32 flex items-center justify-center text-center">
+            Game Record
+          </button>
+
+          <!-- 5. Reimbursement -->
+          <button onclick="location.href='reimbursement.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md h-32 flex items-center justify-center text-center">
+            Reimbursement
+          </button>
+          
+          <!-- 6. Other Receipt -->
+          <button onclick="location.href='otherreceipt.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md h-32 flex items-center justify-center text-center">
+            Other Receipt
+          </button>
+
+          <!-- 7. Forex -->
+          <button onclick="location.href='forex.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md h-32 flex items-center justify-center text-center">
+            Forex
+          </button>
+          
+          <!-- 8. Transaction History -->
+          <button onclick="location.href='transactionhistory.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md h-32 flex items-center justify-center text-center">
+            Transaction History
+          </button>
+          
+          <!-- 9. Chip Bank -->
+          <button onclick="location.href='chipbank.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md h-32 flex items-center justify-center text-center">
+            Chip Bank
+          </button>
+          
+          <!-- 10. Cage Report -->
+          <button onclick="location.href='cagereport.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md h-32 flex items-center justify-center text-center">
+            Cage Report
+          </button>
+
+          <!-- 11. Settings -->
+          <button id="open-settings-btn" class="p-6 bg-gray-600 hover:bg-red-700 text-white font-semibold rounded-lg text-lg transition-colors shadow-md h-32 flex items-center justify-center text-center">
             Settings
           </button>
 
@@ -138,6 +160,7 @@
     </div>
   </main>
 
+  <!-- NEW: Settings Modal -->
   <div id="settings-modal" class="modal-overlay">
     <div class="modal">
         <div class="modal-header">
@@ -158,6 +181,7 @@
     </div>
   </div>
 
+  <!-- Notification placeholder -->
   <div id="notification"></div>
 
   <script>
