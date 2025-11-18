@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reimbursements & Expenses</title>
+  <style>
+    :root{
+      --bg:#1e1e2f; --panel:#2e2e3e; --muted:#3b3b4f; --text:#fff; --sub:#aabfff;
+      --ok:#4CAF50; --bad:#f44336; --ink:#ddd; --line:#444; --chip:#666;
+    }
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}
+    .page{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+    nav{padding:18px;background:#232336;border-right:1px solid var(--line)}
+    nav h1{margin:0 0 12px 0;font-size:18px;color:#eaeaff}
+    nav button, nav a{display:block;width:100%;margin:6px 0;padding:12px;border:0;border-radius:8px;background:#444;color:#fff;cursor:pointer;text-align:left}
+    nav button:hover,nav a:hover{background:#595959}
+    main{padding:22px 26px}
+    .grid{display:grid;gap:18px}
+    .grid.cols-3{grid-template-columns:1fr 1fr 1fr}
+    .card{background:var(--panel);border-radius:14px;padding:18px}
+    .card h2{margin:0 0 10px 0;font-size:18px}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border-bottom:1px solid var(--line);padding:10px;text-align:left}
+    .table tfoot td{font-weight:700}
+    input[type="text"],input[type="number"],select,textarea{
+      background:#444;border:1px solid var(--chip);color:#fff;padding:10px;border-radius:8px;width:100%;
+    }
+    textarea{min-height:70px;resize:vertical}
+    .btn{padding:10px 12px;border:0;border-radius:8px;cursor:pointer}
+    .btn.primary{background:#3e63dd;color:#fff}
+    .btn.good{background:var(--ok);color:#fff}
+    .btn.bad{background:var(--bad);color:#fff}
+    .btn.ghost{background:#444;color:#fff}
+    .right{justify-content:flex-end}
+    .sep{height:1px;background:var(--line);margin:12px 0}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+    #toast{position:fixed;bottom:20px;right:20px;padding:12px 16px;border-radius:8px;background:#333;opacity:0;transition:.3s}
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav>
+    <h1>💸 Reimbursements</h1>
+    <a href="DASHBOARD.HTML">← Back to Dashboard</a>
+    <a href="mainbank.html">← Back to Main Bank</a>
+    <div class="sep"></div>
+  </nav>
+
+  <main>
+    <section class="card">
+      <h2>Record Reimbursement (Fund Out)</h2>
+      <div class="hint" style="color: var(--bad); margin-bottom: 15px;">Use this form to deduct funds from a location's house balance.</div>
+
+      <!-- Add New Category -->
+      <div class="row">
+        <input id="newCategoryName" placeholder="Add new expense category…" style="flex: 1;"/>
+        <button class="btn ghost" id="addCategoryBtn">Add Category</button>
+      </div>
+      <div class="sep"></div>
+      
+      <!-- New Expense Form -->
+      <form id="expenseForm" class="grid cols-3">
+        <div><label>Date</label><input id="exDate" type="date" required/></div>
+        <div><label>Category</label><select id="exCategory" required></select></div>
+        <div><label>Amount</label><input id="exAmount" type="number" step="0.01" required/></div>
+        
+        <div style="grid-column: 1 / 3;"><label>Remarks (Required)</label><textarea id="exRemarks" required></textarea></div>
+        <div><label>Location</label><select id="exLocation" required></select></div>
+
+        <div class="row right" style="grid-column:1/-1;"><button class="btn bad" type="submit">Record Expense (Deduct Funds)</button></div>
+      </form>
+      <div class="sep"></div>
+      
+      <!-- New Expense Table -->
+      <h2>Expense History</h2>
+       <div class="row right" style="margin-bottom: 10px;">
+            <button class="btn good" id="exportExpensesBtn">Export CSV</button>
+       </div>
+      <table class="table" id="expenseTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Category</th>
+            <th>Location</th>
+            <th class="mono">Amount</th>
+            <th>Remarks</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3">Total Expenses</td>
+            <td class="mono" id="expenseTotal">₱0.00</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </section>
+
+    <div id="toast">Saved</div>
+  </main>
+</div>
+
+<script>
+/* ------------------------------------------------------------------
+   Data Storage Keys
+-------------------------------------------------------------------*/
+const ACCOUNT_STORAGE_KEY = 'account-dashboard:v1';
+const MAINBANK_KEY = 'mainbank:v1';
+
+/* ------------------------------------------------------------------
+   DataBridge
+-------------------------------------------------------------------*/
+const DataBridge = {
+  async loadAccounts() {
+    const raw = localStorage.getItem(ACCOUNT_STORAGE_KEY);
+    if (!raw) return { accounts: [], locations: [] };
+    const s = JSON.parse(raw);
+    return {
+      accounts: Array.isArray(s.accounts) ? s.accounts : [],
+      locations: Array.isArray(s.locations) ? s.locations : []
+    };
+  },
+  async loadMainbank() {
+    const raw = localStorage.getItem(MAINBANK_KEY);
+    if (!raw) {
+      toast('Main Bank data not found. Please visit mainbank.html first.', 'bad');
+      return null;
+    }
+    const data = JSON.parse(raw);
+    // Ensure expense arrays exist
+    if (!data.expenses) data.expenses = [];
+    if (!data.expenseCategories) data.expenseCategories = ["General"];
+    return data;
+  },
+  async saveMainbank(state) {
+    localStorage.setItem(MAINBANK_KEY, JSON.stringify(state));
+    return true;
+  }
+};
+
+// utils
+const fmtPHP = (n)=> new Intl.NumberFormat('en-US',{style:'currency',currency:'PHP',minimumFractionDigits:2}).format(+n||0);
+const uid = ()=> Math.random().toString(36).slice(2,9);
+const toast=(m='Saved', type='good')=>{
+  const t=document.getElementById('toast'); 
+  t.textContent=m; 
+  t.style.background = type === 'good' ? 'var(--ok)' : 'var(--bad)';
+  t.style.opacity=1;
+  setTimeout(()=>t.style.opacity=0, 2000);
+};
+
+// state
+let MB = null;        // mainbank
+let ACC = {accounts:[], locations:[]}; // accounts/locations
+
+// DOM refs
+const exLocation = document.getElementById('exLocation');
+const exCategory = document.getElementById('exCategory');
+const expenseTBody = document.querySelector('#expenseTable tbody');
+const expenseTotal = document.getElementById('expenseTotal');
+const expenseForm = document.getElementById('expenseForm');
+const exDate = document.getElementById('exDate');
+const exAmount = document.getElementById('exAmount');
+const exRemarks = document.getElementById('exRemarks');
+const newCategoryName = document.getElementById('newCategoryName');
+const addCategoryBtn = document.getElementById('addCategoryBtn');
+
+// --- Add Category ---
+addCategoryBtn.addEventListener('click', () => {
+  const v = newCategoryName.value.trim();
+  if(!v) return;
+  if (MB.expenseCategories.includes(v)) {
+      toast('Category already exists', 'bad');
+      return;
+  }
+  MB.expenseCategories.push(v);
+  newCategoryName.value = '';
+  DataBridge.saveMainbank(MB);
+  fillDropdowns();
+  toast('Category added');
+});
+
+// --- Form Submit Handler ---
+expenseForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const row = {
+    id: uid(), 
+    date: exDate.value || new Date().toISOString().slice(0,10),
+    category: exCategory.value, 
+    location: exLocation.value,
+    amount: +exAmount.value || 0,
+    remarks: exRemarks.value.trim()
+  };
+  
+  if (!row.remarks) {
+      toast('Remarks are required', 'bad');
+      return;
+  }
+  if (row.amount <= 0) {
+      toast('Amount must be positive', 'bad');
+      return;
+  }
+
+  // --- Deduct funds from house balance ---
+  const loc = row.location;
+  const amt = row.amount;
+  if (!MB.houseBalances[loc]) {
+      MB.houseBalances[loc] = 0;
+  }
+  MB.houseBalances[loc] -= amt; // Deduct amount
+  
+  // Add to activity log
+  const ts = new Date().toLocaleString();
+  const logMsg = `[${ts}] Expense: -${fmtPHP(amt)} from ${cap(loc)} (${row.category})`;
+  MB.activityLog.unshift(logMsg);
+  
+  // Add to our new list
+  MB.expenses.unshift(row);
+  
+  // Save, toast, and re-render
+  await DataBridge.saveMainbank(MB); 
+  toast('Expense Recorded & Deducted'); 
+  renderExpenses();
+  expenseForm.reset();
+  exDate.value = new Date().toISOString().slice(0,10);
+});
+
+// --- Delete Expense Handler ---
+function delExpense(id) { 
+    const expense = MB.expenses.find(e => e.id === id);
+    if (!expense) {
+        toast('Error: Could not find expense to delete.', 'bad');
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to VOID this expense?\n\nType: ${expense.category}\nAmount: ${fmtPHP(expense.amount)}\n\nThis will ADD the funds back to the house balance.`)) {
+        return;
+    }
+    
+    const loc = expense.location;
+    const amt = expense.amount;
+
+    MB.expenses = MB.expenses.filter(e => e.id !== id); 
+
+    // --- Add back to house balance ---
+    if (MB.houseBalances[loc]) {
+        MB.houseBalances[loc] += amt; // Add amount back
+    } else {
+        MB.houseBalances[loc] = amt; // Should be rare, but safe
+    }
+    
+    // Add to activity log
+    const ts = new Date().toLocaleString();
+    const logMsg = `[${ts}] Expense VOID: +${fmtPHP(amt)} to ${cap(loc)} (${expense.category})`;
+    MB.activityLog.unshift(logMsg);
+
+    DataBridge.saveMainbank(MB).then(() => {
+        toast('Deleted & Refunded to House'); 
+        renderExpenses(); 
+    }); 
+}
+
+// --- Fill Dropdowns ---
+function fillDropdowns() {
+  // Fill locations
+  exLocation.innerHTML = ACC.locations.map(l=>`<option value="${l}">${cap(l)}</option>`).join('');
+  
+  // Fill expense types
+  exCategory.innerHTML = MB.expenseCategories.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+// --- Render Table ---
+function renderExpenses(){
+  // set default date
+  exDate.value = new Date().toISOString().slice(0,10);
+  
+  // render table
+  expenseTBody.innerHTML=''; 
+  let total = 0;
+  // Sort by date, newest first
+  const sortedExpenses = [...MB.expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  sortedExpenses.forEach(e => {
+    const tr=document.createElement('tr');
+    tr.innerHTML = `
+      <td>${e.date}</td>
+      <td>${e.category}</td>
+      <td>${cap(e.location||'')}</td>
+      <td class="mono">${fmtPHP(e.amount||0)}</td>
+      <td>${e.remarks || ''}</td>
+      <td><button class="btn ghost" onclick="delExpense('${e.id}')">Delete</button></td>`;
+    expenseTBody.appendChild(tr); 
+    total += +e.amount||0;
+  });
+  expenseTotal.textContent = fmtPHP(total);
+}
+
+// --- Export Expenses Function ---
+function exportExpensesToCSV() {
+    if (!MB.expenses || MB.expenses.length === 0) {
+        toast('No expenses to export.', 'bad');
+        return;
+    }
+
+    const columns = ['Date', 'Category', 'Location', 'Amount', 'Remarks'];
+    let csvContent = "data:text/csv;charset=utf-8," + columns.join(",") + "\n";
+
+    // Sort by date, newest first (matches table)
+    const sortedExpenses = [...MB.expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    sortedExpenses.forEach(e => {
+        const row = [
+            e.date,
+            e.category,
+            e.location,
+            e.amount,
+            `"${(e.remarks || '').replace(/"/g, '""')}"` // Handle commas/quotes in remarks
+        ];
+        csvContent += row.join(",") + "\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    
+    const timestamp = new Date().toISOString().slice(0, 10);
+    link.setAttribute("download", `expenses_report_${timestamp}.csv`);
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast('Expenses exported to CSV');
+}
+document.getElementById('exportExpensesBtn').addEventListener('click', exportExpensesToCSV);
+// ---
+
+function cap(s){ return (s||'').charAt(0).toUpperCase()+ (s||'').slice(1); }
+
+/* -------------------- Boot -------------------- */
+async function boot(){
+  ACC = await DataBridge.loadAccounts(); 
+  MB = await DataBridge.loadMainbank();
+  
+  if (!MB) return; // Stop if main bank fails to load
+
+  fillDropdowns();
+  renderExpenses(); 
+}
+
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Other Receipts</title>
+  <style>
+    :root{
+      --bg:#1e1e2f; --panel:#2e2e3e; --muted:#3b3b4f; --text:#fff; --sub:#aabfff;
+      --ok:#4CAF50; --bad:#f44336; --ink:#ddd; --line:#444; --chip:#666;
+    }
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}
+    .page{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+    nav{padding:18px;background:#232336;border-right:1px solid var(--line)}
+    nav h1{margin:0 0 12px 0;font-size:18px;color:#eaeaff}
+    nav button, nav a{display:block;width:100%;margin:6px 0;padding:12px;border:0;border-radius:8px;background:#444;color:#fff;cursor:pointer;text-align:left}
+    nav button:hover,nav a:hover{background:#595959}
+    main{padding:22px 26px}
+    .grid{display:grid;gap:18px}
+    .grid.cols-3{grid-template-columns:1fr 1fr 1fr}
+    .card{background:var(--panel);border-radius:14px;padding:18px}
+    .card h2{margin:0 0 10px 0;font-size:18px}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border-bottom:1px solid var(--line);padding:10px;text-align:left}
+    .table tfoot td{font-weight:700}
+    input[type="text"],input[type="number"],select,textarea{
+      background:#444;border:1px solid var(--chip);color:#fff;padding:10px;border-radius:8px;width:100%;
+    }
+    textarea{min-height:70px;resize:vertical}
+    .btn{padding:10px 12px;border:0;border-radius:8px;cursor:pointer}
+    .btn.primary{background:#3e63dd;color:#fff}
+    .btn.good{background:var(--ok);color:#fff}
+    .btn.bad{background:var(--bad);color:#fff}
+    .btn.ghost{background:#444;color:#fff}
+    .right{justify-content:flex-end}
+    .sep{height:1px;background:var(--line);margin:12px 0}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+    #toast{position:fixed;bottom:20px;right:20px;padding:12px 16px;border-radius:8px;background:#333;opacity:0;transition:.3s}
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav>
+    <h1>📥 Other Receipts</h1>
+    <a href="DASHBOARD.HTML">← Back to Dashboard</a>
+    <a href="mainbank.html">← Back to Main Bank</a>
+    <div class="sep"></div>
+  </nav>
+
+  <main>
+    <section class="card">
+      <h2>Record "Other Receipt" (Fund In)</h2>
+      <div class="hint" style="color: var(--ok); margin-bottom: 15px;">Use this form to add funds to a location's house balance.</div>
+      
+      <!-- New Receipt Form -->
+      <form id="receiptForm" class="grid cols-3">
+        <div><label>Date</label><input id="recDate" type="date" required/></div>
+        <div><label>Type of Receipt</label><select id="recType" required></select></div>
+        <div><label>Amount</label><input id="recAmount" type="number" step="0.01" required/></div>
+        
+        <div style="grid-column: 1 / 3;"><label>Remarks (Required)</label><textarea id="recRemarks" required></textarea></div>
+        <div><label>Location</label><select id="recLocation" required></select></div>
+
+        <div class="row right" style="grid-column:1/-1;"><button class="btn good" type="submit">Record Receipt (Add Funds)</button></div>
+      </form>
+      <div class="sep"></div>
+      
+      <!-- New Receipt Table -->
+      <h2>Receipt History</h2>
+      <!-- --- NEW: Export Button --- -->
+      <div class="row right" style="margin-bottom: 10px;">
+            <button class="btn good" id="exportReceiptsBtn">Export CSV</button>
+       </div>
+      <!-- --- END NEW --- -->
+      <table class="table" id="receiptTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Location</th>
+            <th class="mono">Amount</th>
+            <th>Remarks</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3">Total Received</td>
+            <td class="mono" id="receiptTotal">₱0.00</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </section>
+
+    <div id="toast">Saved</div>
+  </main>
+</div>
+
+<script>
+/* ------------------------------------------------------------------
+   Data Storage Keys
+-------------------------------------------------------------------*/
+const ACCOUNT_STORAGE_KEY = 'account-dashboard:v1';
+const MAINBANK_KEY = 'mainbank:v1';
+
+/* ------------------------------------------------------------------
+   DataBridge
+-------------------------------------------------------------------*/
+const DataBridge = {
+  async loadAccounts() {
+    const raw = localStorage.getItem(ACCOUNT_STORAGE_KEY);
+    if (!raw) return { accounts: [], locations: [] };
+    const s = JSON.parse(raw);
+    return {
+      accounts: Array.isArray(s.accounts) ? s.accounts : [],
+      locations: Array.isArray(s.locations) ? s.locations : []
+    };
+  },
+  async loadMainbank() {
+    const raw = localStorage.getItem(MAINBANK_KEY);
+    if (!raw) {
+      toast('Main Bank data not found. Please visit mainbank.html first.', 'bad');
+      return null;
+    }
+    const data = JSON.parse(raw);
+    // Ensure the new array exists
+    if (!data.otherReceipts) data.otherReceipts = [];
+    return data;
+  },
+  async saveMainbank(state) {
+    localStorage.setItem(MAINBANK_KEY, JSON.stringify(state));
+    return true;
+  }
+};
+
+// utils
+const fmtPHP = (n)=> new Intl.NumberFormat('en-US',{style:'currency',currency:'PHP',minimumFractionDigits:2}).format(+n||0);
+const uid = ()=> Math.random().toString(36).slice(2,9);
+const toast=(m='Saved', type='good')=>{
+  const t=document.getElementById('toast'); 
+  t.textContent=m; 
+  t.style.background = type === 'good' ? 'var(--ok)' : 'var(--bad)';
+  t.style.opacity=1;
+  setTimeout(()=>t.style.opacity=0, 2000);
+};
+
+// state
+let MB = null;        // mainbank
+let ACC = {accounts:[], locations:[]}; // accounts/locations
+
+// DOM refs
+const recLocation = document.getElementById('recLocation');
+const recType = document.getElementById('recType');
+const receiptTBody = document.querySelector('#receiptTable tbody');
+const receiptTotal = document.getElementById('receiptTotal');
+const receiptForm = document.getElementById('receiptForm');
+const recDate = document.getElementById('recDate');
+const recAmount = document.getElementById('recAmount');
+const recRemarks = document.getElementById('recRemarks');
+
+// --- Form Submit Handler ---
+receiptForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const row = {
+    id: uid(), 
+    date: recDate.value || new Date().toISOString().slice(0,10),
+    type: recType.value, 
+    location: recLocation.value,
+    amount: +recAmount.value || 0,
+    remarks: recRemarks.value.trim()
+  };
+  
+  if (!row.remarks) {
+      toast('Remarks are required', 'bad');
+      return;
+  }
+  if (row.amount <= 0) {
+      toast('Amount must be positive', 'bad');
+      return;
+  }
+
+  // --- Add funds to house balance ---
+  const loc = row.location;
+  const amt = row.amount;
+  if (!MB.houseBalances[loc]) {
+      MB.houseBalances[loc] = 0;
+  }
+  MB.houseBalances[loc] += amt; // Add amount
+  
+  // Add to activity log
+  const ts = new Date().toLocaleString();
+  const logMsg = `[${ts}] Other Receipt: +${fmtPHP(amt)} to ${cap(loc)} (${row.type})`;
+  MB.activityLog.unshift(logMsg);
+  
+  // Add to our new list
+  MB.otherReceipts.unshift(row);
+  
+  // Save, toast, and re-render
+  await DataBridge.saveMainbank(MB); 
+  toast('Receipt Recorded & Funds Added'); 
+  renderReceipts();
+  receiptForm.reset();
+  recDate.value = new Date().toISOString().slice(0,10);
+});
+
+// --- Delete Receipt Handler ---
+function delReceipt(id) { 
+    const receipt = MB.otherReceipts.find(r => r.id === id);
+    if (!receipt) {
+        toast('Error: Could not find receipt to delete.', 'bad');
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to VOID this receipt?\n\nType: ${receipt.type}\nAmount: ${fmtPHP(receipt.amount)}\n\nThis will REMOVE the funds from the house balance.`)) {
+        return;
+    }
+
+    const loc = receipt.location;
+    const amt = receipt.amount;
+
+    MB.otherReceipts = MB.otherReceipts.filter(r => r.id !== id); 
+
+    // --- Remove from house balance ---
+    if (MB.houseBalances[loc]) {
+        MB.houseBalances[loc] -= amt; // Subtract amount
+    } else {
+        MB.houseBalances[loc] = -amt;
+    }
+    
+    // Add to activity log
+    const ts = new Date().toLocaleString();
+    const logMsg = `[${ts}] Receipt VOID: -${fmtPHP(amt)} from ${cap(loc)} (${receipt.type})`;
+    MB.activityLog.unshift(logMsg);
+
+    DataBridge.saveMainbank(MB).then(() => {
+        toast('Deleted & Funds Removed from House'); 
+        renderReceipts(); 
+    }); 
+}
+
+// --- Fill Dropdowns ---
+function fillDropdowns() {
+  // Fill locations
+  recLocation.innerHTML = ACC.locations.map(l=>`<option value="${l}">${cap(l)}</option>`).join('');
+  
+  // Fill receipt types
+  const types = [
+    "Fund Movement In", "Payment", "Cash received", "Fund Return", 
+    "Wire transfer In / Bank Transfer In", "Lost & Found"
+  ];
+  recType.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+}
+
+// --- Render Table ---
+function renderReceipts(){
+  // set default date
+  recDate.value = new Date().toISOString().slice(0,10);
+  
+  // render table
+  receiptTBody.innerHTML=''; 
+  let total = 0;
+  // Sort by date, newest first
+  const sortedReceipts = [...MB.otherReceipts].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  sortedReceipts.forEach(r => {
+    const tr=document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.date}</td>
+      <td>${r.type}</td>
+      <td>${cap(r.location||'')}</td>
+      <td class="mono">${fmtPHP(r.amount||0)}</td>
+      <td>${r.remarks || ''}</td>
+      <td><button class="btn ghost" onclick="delReceipt('${r.id}')">Delete</button></td>`;
+    receiptTBody.appendChild(tr); 
+    total += +r.amount||0;
+  });
+  receiptTotal.textContent = fmtPHP(total);
+}
+
+// --- NEW: Export Receipts Function ---
+function exportReceiptsToCSV() {
+    if (!MB.otherReceipts || MB.otherReceipts.length === 0) {
+        toast('No receipts to export.', 'bad');
+        return;
+    }
+
+    const columns = ['Date', 'Type', 'Location', 'Amount', 'Remarks'];
+    let csvContent = "data:text/csv;charset=utf-8," + columns.join(",") + "\n";
+
+    // Sort by date, newest first (matches table)
+    const sortedReceipts = [...MB.otherReceipts].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    sortedReceipts.forEach(r => {
+        const row = [
+            r.date,
+            r.type,
+            r.location,
+            r.amount,
+            `"${(r.remarks || '').replace(/"/g, '""')}"` // Handle commas/quotes in remarks
+        ];
+        csvContent += row.join(",") + "\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    
+    const timestamp = new Date().toISOString().slice(0, 10);
+    link.setAttribute("download", `other_receipts_report_${timestamp}.csv`);
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast('Receipts exported to CSV');
+}
+// --- END NEW ---
+
+function cap(s){ return (s||'').charAt(0).toUpperCase()+ (s||'').slice(1); }
+
+/* -------------------- Boot -------------------- */
+async function boot(){
+  ACC = await DataBridge.loadAccounts(); 
+  MB = await DataBridge.loadMainbank();
+  
+  if (!MB) return; // Stop if main bank fails to load
+
+  fillDropdowns();
+  renderReceipts(); 
+  
+  // --- NEW: Bind Export Button ---
+  document.getElementById('exportReceiptsBtn').addEventListener('click', exportReceiptsToCSV);
+  // --- END NEW ---
+}
+
+boot();
+</script>
+</body>
+</html>

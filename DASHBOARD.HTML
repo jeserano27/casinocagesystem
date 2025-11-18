@@ -92,7 +92,13 @@
 
       <!-- Main Navigation Grid -->
       <section id="main-navigation">
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <!-- 
+          MODIFICATION: 
+          Changed grid to be 3-wide on medium screens (md:grid-cols-3)
+          Removed lg:grid-cols-4
+          This makes a 9-button layout look perfect.
+        -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
           
           <!-- Navigation Button -->
           <button onclick="location.href='account2.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
@@ -113,6 +119,14 @@
           <button onclick="location.href='chipbank.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
             Chip Bank
           </button>
+
+          <!-- 
+            NEW BUTTON:
+            Added Reimbursement button
+          -->
+          <button onclick="location.href='reimbursement.html'" class="p-6 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
+            Reimbursement
+          </button>
           
           <!-- Navigation Button -->
           <button onclick="location.href='cagereport.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
@@ -120,12 +134,15 @@
           </button>
           
           <!-- Navigation Button -->
-          <button onclick="location.href='Otherreceipt.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
+          <button onclick="location.href='otherreceipt.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
             Other Receipt
           </button>
           
-          <!-- Navigation Button -->
-          <button onclick="location.href='transactionhistory.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md col-span-2 md:col-span-1">
+          <!-- 
+            MODIFICATION:
+            Removed col-span classes so it fits the new 3-wide grid.
+          -->
+          <button onclick="location.href='transactionhistory.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
             Transaction History
           </button>
 

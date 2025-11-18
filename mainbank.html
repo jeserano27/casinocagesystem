@@ -89,11 +89,13 @@
   </nav>
 
   <main>
+    <!-- TOP SUMMARY -->
     <section class="grid cols-3">
       <div class="card">
         <h2>Grand Totals</h2>
         <div class="kpi" id="grandTotals">
-          </div>
+          <!-- filled by JS -->
+        </div>
       </div>
 
       <div class="card">
@@ -105,22 +107,25 @@
         </table>
       </div>
 
+      <!-- NEW: Activity Log Card (Replaced Inventories) -->
       <div class="card">
         <h2>Recent House Activity</h2>
         <div class="activity-log">
             <ul class="activity-log-list" id="activityLogList">
-                </ul>
+                <!-- <li><span class="log-time">[11/11/2025]</span> Game Settle: +1000</li> -->
+            </ul>
         </div>
       </div>
     </section>
 
+    <!-- MOVED: Inventories and House Balances -->
     <section class="grid cols-2" style="margin-top:18px;">
         <div class="card">
             <h2>House Balances by Location</h2>
             <div class="hint">Use this to record the house’s portion per location. Guests’ side is auto-summed from accounts.</div>
             <table class="table" id="houseTable">
               <thead><tr><th>Location</th><th>House Balance</th><th></th></tr></thead>
-              <tbody></tbody>
+              <tbody><!-- rows inserted --></tbody>
               <tfoot><tr><td>Total House</td><td class="mono" id="houseTotal">₱0.00</td><td></td></tr></tfoot>
             </table>
             <div class="row right"><button class="btn primary" id="saveHouseBtn">Save House Balances</button></div>
@@ -154,60 +159,13 @@
         </div>
     </section>
 
-    <section class="grid cols-2" style="margin-top:18px;">
-      <div class="card">
-        <h2>Junket Expenses</h2>
-        <div class="row">
-          <select id="junketCatSelect"></select>
-          <input id="junketNewCat" placeholder="Add new category…"/>
-          <button class="btn ghost" id="addJunketCatBtn">Add</button>
-        </div>
-        <div class="sep"></div>
-        <form id="junketForm" class="grid cols-3">
-          <div><label>Date</label><input id="jxDate" type="date"/></div>
-          <div><label>Category</label><select id="jxCat"></select></div>
-          <div><label>Amount</label><input id="jxAmt" type="number" step="0.01"/></div>
-          <div class="grid cols-3" style="grid-column:1/-1;">
-            <div><label>Location</label><select id="jxLoc"></select></div>
-            <div style="grid-column:1/-1;"><label>Remarks</label><textarea id="jxNote"></textarea></div>
-          </div>
-          <div class="row right" style="grid-column:1/-1;"><button class="btn primary" type="submit">Record Junket Expense</button></div>
-        </form>
-        <div class="sep"></div>
-        <table class="table" id="junketTable">
-          <thead><tr><th>Date</th><th>Category</th><th>Location</th><th class="mono">Amount</th><th></th></tr></thead>
-          <tbody></tbody>
-          <tfoot><tr><td colspan="3">Total</td><td class="mono" id="junketTotal">₱0.00</td><td></td></tr></tfoot>
-        </table>
-      </div>
+    <!-- 
+        *** MODIFICATION ***
+        REMOVED the entire "Reimbursements & Expenses" section.
+        It is now fully handled in reimbursement.html
+    -->
 
-      <div class="card">
-        <h2>Non-Junket Expenses</h2>
-        <div class="row">
-          <select id="nonCatSelect"></select>
-          <input id="nonNewCat" placeholder="Add new category…"/>
-          <button class="btn ghost" id="addNonCatBtn">Add</button>
-        </div>
-        <div class="sep"></div>
-        <form id="nonForm" class="grid cols-3">
-          <div><label>Date</label><input id="nxDate" type="date"/></div>
-          <div><label>Category</label><select id="nxCat"></select></div>
-          <div><label>Amount</label><input id="nxAmt" type="number" step="0.01"/></div>
-          <div class="grid cols-3" style="grid-column:1/-1;">
-            <div><label>Location</label><select id="nxLoc"></select></div>
-            <div style="grid-column:1/-1;"><label>Remarks</label><textarea id="nxNote"></textarea></div>
-          </div>
-          <div class="row right" style="grid-column:1/-1;"><button class="btn primary" type="submit">Record Non-Junket Expense</button></div>
-        </form>
-        <div class="sep"></div>
-        <table class="table" id="nonTable">
-          <thead><tr><th>Date</th><th>Category</th><th>Location</th><th class="mono">Amount</th><th></th></tr></thead>
-          <tbody></tbody>
-          <tfoot><tr><td colspan="3">Total</td><td class="mono" id="nonTotal">₱0.00</td><td></td></tr></tfoot>
-        </table>
-      </div>
-    </section>
-
+    <!-- MARKERS -->
     <section class="card" style="margin-top:18px;">
       <h2>Active Markers</h2>
       <div class="row">
@@ -233,6 +191,7 @@
       </table>
     </section>
 
+    <!-- MODIFIED: Monthly Game Performance (Automated) -->
     <section class="card" style="margin-top:18px;">
       <h2>Monthly Game Record (Auto-Calculated)</h2>
       <div class="row right">
@@ -258,6 +217,7 @@
       </table>
     </section>
 
+    <!-- MODIFIED: Daily Live View (Automated) -->
     <section class="card" style="margin-top:18px;">
       <h2>Live Daily Revenue vs Expenses (Auto-Calculated)</h2>
       <div class="row right">
@@ -306,13 +266,21 @@ const DataBridge = {
         activityLog: [], // For game settlements
         crypto: { usdt_trc20:0, usdt_erc20:0 },
         forex: { jpy:0, krw:0, usd:0, hkd:0 },
-        junketExpenseCategories: ["Salary","Transportation","Security","General Supplies","Hotel","Other Expenses","Employee Benefits","Car","Concierge Fund","FnB","Event","Rent","Revenue Share","Gifts"],
-        nonJunketExpenseCategories: ["bsm expenses","bgc expenses","bk expenses"],
-        expenses: [], // {id,date,kind:'junket'|'non',category,location,amount,remarks}
+        // --- MODIFIED: New single expense category list ---
+        expenseCategories: [
+            "Expense Hotel", "Expense Fnb", "Expense Salary", "Expense Car", "Expense General Supplies",
+            "Expense Transportation", "Expense Security", "Expense Rent", "Expense Employee Benefit",
+            "Expense Consultation", "Subsciption (incl CC Payment)", "BSM Expense", "BGC Expense",
+            "WTP Expense", "PIGO Expense", "Revenue Share", "Losing Back", "Lost & Found Return"
+        ],
+        // --- END MODIFICATION ---
+        expenses: [], // {id,date,category,location,amount,remarks}
+        otherReceipts: [], // --- NEW: Added for otherreceipt.html ---
         markers: [],  // {id,accountNumber,name,amount,status,remarks}
         monthlyGame: [], // {id,month,buyIn,winLose,share,rolling,commission,promoName,ngr}
         daily: [] // {id,date,rev,exp,net,notes}
       };
+      // Removed old junket/non-junket categories
       localStorage.setItem(MAINBANK_KEY, JSON.stringify(init));
       return init;
     }
@@ -320,6 +288,30 @@ const DataBridge = {
     // Ensure new fields exist on old data
     if (!data.activityLog) data.activityLog = [];
     if (!data.houseBalances) data.houseBalances = {};
+    
+    // --- NEW: Add otherReceipts array if missing ---
+    if (!data.otherReceipts) data.otherReceipts = [];
+    // --- END NEW ---
+
+    // --- NEW: Migration for expense categories ---
+    if (data.junketExpenseCategories || data.nonJunketExpenseCategories) {
+        data.expenseCategories = [
+            "Expense Hotel", "Expense Fnb", "Expense Salary", "Expense Car", "Expense General Supplies",
+            "Expense Transportation", "Expense Security", "Expense Rent", "Expense Employee Benefit",
+            "Expense Consultation", "Subsciption (incl CC Payment)", "BSM Expense", "BGC Expense",
+            "WTP Expense", "PIGO Expense", "Revenue Share", "Losing Back", "Lost & Found Return"
+        ];
+        // Merge old expenses into new single list if they exist
+        if (data.expenses && data.expenses.length > 0 && data.expenses[0].kind) {
+            data.expenses.forEach(e => { delete e.kind; }); // Remove old 'kind' property
+        }
+        delete data.junketExpenseCategories;
+        delete data.nonJunketExpenseCategories;
+    }
+    if (!data.expenseCategories) {
+         data.expenseCategories = ["General"]; // Fallback
+    }
+    // --- END MIGRATION ---
     return data;
   },
   // NEW: Load game records
@@ -378,57 +370,15 @@ document.getElementById('saveInvBtn').addEventListener('click', async ()=>{
   renderTop(); // We don't re-render the log here, just top KPIs
 });
 
-// category pickers
-const junketCatSelect = document.getElementById('junketCatSelect');
-const nonCatSelect = document.getElementById('nonCatSelect');
-document.getElementById('addJunketCatBtn').addEventListener('click',()=>{
-  const v=document.getElementById('junketNewCat').value.trim();
-  if(!v) return;
-  MB.junketExpenseCategories.push(v);
-  document.getElementById('junketNewCat').value='';
-  saveCats(); fillCats(); toast('Junket category added');
-});
-document.getElementById('addNonCatBtn').addEventListener('click',()=>{
-  const v=document.getElementById('nonNewCat').value.trim();
-  if(!v) return;
-  MB.nonJunketExpenseCategories.push(v);
-  document.getElementById('nonNewCat').value='';
-  saveCats(); fillCats(); toast('Non-junket category added');
-});
-function saveCats(){ DataBridge.saveMainbank(MB); }
+// ---
+// --- MODIFIED: Expense System ---
+// ---
+// All DOM refs, event listeners, and functions (renderExpenses, delExpense, exportExpensesToCSV)
+// have been removed from this file.
+// The data (MB.expenses) is still loaded in the boot() function
+// for the "Live Daily Revenue" report, but it is no longer rendered here.
+// --- END MODIFICATION ---
 
-// expenses forms & tables
-const jxLoc = document.getElementById('jxLoc'), nxLoc = document.getElementById('nxLoc');
-const jxCat = document.getElementById('jxCat'), nxCat = document.getElementById('nxCat');
-const junketTBody = document.querySelector('#junketTable tbody');
-const nonTBody = document.querySelector('#nonTable tbody');
-const junketTotal = document.getElementById('junketTotal');
-const nonTotal = document.getElementById('nonTotal');
-
-document.getElementById('junketForm').addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const row = {
-    id: uid(), date: document.getElementById('jxDate').value || new Date().toISOString().slice(0,10),
-    kind:'junket', category: jxCat.value, location: jxLoc.value,
-    amount: +document.getElementById('jxAmt').value || 0,
-    remarks: document.getElementById('jxNote').value.trim()
-  };
-  MB.expenses.unshift(row);
-  await DataBridge.saveMainbank(MB); toast('Junket expense recorded'); renderExpenses();
-});
-document.getElementById('nonForm').addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const row = {
-    id: uid(), date: document.getElementById('nxDate').value || new Date().toISOString().slice(0,10),
-    kind:'non', category: nxCat.value, location: nxLoc.value,
-    amount: +document.getElementById('nxAmt').value || 0,
-    remarks: document.getElementById('nxNote').value.trim()
-  };
-  MB.expenses.unshift(row);
-  await DataBridge.saveMainbank(MB); toast('Non-junket expense recorded'); renderExpenses();
-});
-
-function delExpense(id){ MB.expenses = MB.expenses.filter(e=>e.id!==id); DataBridge.saveMainbank(MB).then(()=>{toast('Deleted'); renderExpenses();}); }
 
 // markers
 const markerTBody = document.querySelector('#markerTable tbody');
@@ -458,10 +408,6 @@ document.getElementById('importMarkersBtn').addEventListener('click', ()=>{
     toast('No markers found in accounts');
   }
 });
-
-// REMOVED: Old Monthly Game form logic
-
-// REMOVED: Old Daily Live View form logic
 
 // house table editing
 saveHouseBtn.addEventListener('click', async ()=>{
@@ -539,9 +485,9 @@ function renderActivityLog() {
         
         // Color coding for net change
         let netClass = '';
-        if (msg.includes('Net +')) {
+        if (msg.includes('Net +') || log.includes('Expense VOID: +') || log.includes('Other Receipt: +')) { // Modified
             netClass = 'log-positive';
-        } else if (msg.includes('Net -')) {
+        } else if (msg.includes('Net -') || log.includes('Expense: -') || log.includes('Receipt VOID: -')) { // Modified
             netClass = 'log-negative';
         }
         
@@ -564,21 +510,31 @@ function renderHouseInputs(){
   houseTotal.textContent = fmtPHP(t);
 }
 
+// --- MODIFIED: Render new expense system ---
 function renderExpenses(){
-  // fill location selects
-  jxLoc.innerHTML = nxLoc.innerHTML = ACC.locations.map(l=>`<option value="${l}">${cap(l)}</option>`).join('');
-  // tables
-  junketTBody.innerHTML=''; nonTBody.innerHTML='';
-  let tj=0, tn=0;
-  MB.expenses.forEach(e=>{
+  // This function now ONLY renders the table.
+  
+  // render table
+  expenseTBody.innerHTML=''; 
+  let total = 0;
+  // Sort by date, newest first
+  const sortedExpenses = [...MB.expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  sortedExpenses.forEach(e=>{
     const tr=document.createElement('tr');
-    tr.innerHTML = `<td>${e.date}</td><td>${e.category}</td><td>${cap(e.location||'')}</td><td class="mono">${fmtPHP(e.amount||0)}</td>
+    tr.innerHTML = `
+      <td>${e.date}</td>
+      <td>${e.category}</td>
+      <td>${cap(e.location||'')}</td>
+      <td class="mono">${fmtPHP(e.amount||0)}</td>
+      <td>${e.remarks || ''}</td>
       <td><button class="btn ghost" onclick="delExpense('${e.id}')">Delete</button></td>`;
-    if (e.kind==='junket'){ junketTBody.appendChild(tr); tj+=+e.amount||0; } else { nonTBody.appendChild(tr); tn+=+e.amount||0; }
+    expenseTBody.appendChild(tr); 
+    total += +e.amount||0;
   });
-  junketTotal.textContent = fmtPHP(tj);
-  nonTotal.textContent = fmtPHP(tn);
+  expenseTotal.textContent = fmtPHP(total);
 }
+// --- END MODIFICATION ---
 
 function renderMarkers(){
   markerTBody.innerHTML='';
@@ -727,7 +683,7 @@ function addKPI(label, val){
   c.innerHTML=`<h3>${label}</h3><div class="val">${val}</div>`;
   grandTotals.appendChild(c);
 }
-function cap(s){ return (s||'').charAt(0).toUpperCase()+ (s||'L').slice(1); }
+function cap(s){ return (s||'').charAt(0).toUpperCase()+ (s||'').slice(1); }
 function mergeUnique(a,b,key){ const seen=new Set(a.map(x=>key(x))); b.forEach(x=>{const k=key(x);if(!seen.has(k)){a.push(x);seen.add(k);}}); return a; }
 
 /* -------------------- Boot -------------------- */
@@ -736,14 +692,13 @@ async function boot(){
   MB = await DataBridge.loadMainbank();
   GAMES = await DataBridge.loadGameRecords(); // NEW
   
-  // fill category pickers
-  fillCats();
-
+  // --- MODIFIED: Removed fillCats(), it's no longer here ---
+  
   // render location-dependent UIs
   renderTop(); 
   renderActivityLog(); 
   renderHouseInputs(); 
-  renderExpenses(); 
+  // --- renderExpenses() call removed ---
   renderMarkers(); 
   
   // NEW: Call auto-renderers
@@ -753,12 +708,14 @@ async function boot(){
   // NEW: Bind recalculate buttons
   document.getElementById('recalcMonthlyBtn').addEventListener('click', autoRenderMonthlyGame);
   document.getElementById('recalcDailyBtn').addEventListener('click', autoRenderDailyNet);
-}
-function fillCats(){
-  junketCatSelect.innerHTML = MB.junketExpenseCategories.map(c=>`<option>${c}</option>`).join('');
-  nonCatSelect.innerHTML = MB.nonJunketExpenseCategories.map(c=>`<option>${c}</option>`).join('');
-  jxCat.innerHTML = junketCatSelect.innerHTML;
-  nxCat.innerHTML = nonCatSelect.innerHTML;
+
+  // --- REMOVED: Bind Expense Export Button ---
+  
+  // --- NEW: Bind Go To Reimbursements Button ---
+  document.getElementById('goToReimbursementsBtn').addEventListener('click', () => {
+      location.href = 'reimbursement.html';
+  });
+  // --- END NEW ---
 }
 
 // Add storage listener for real-time updates
