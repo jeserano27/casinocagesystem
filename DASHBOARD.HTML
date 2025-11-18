@@ -70,7 +70,6 @@
         Casino Cage System
       </h1>
 
-      <!-- Top Guest Entry Section -->
       <section id="guest-entry" class="mb-10 p-6 bg-gray-900 rounded-xl">
         <h2 class="text-xl font-semibold text-center text-gray-200 mb-4">Go to Guest Account</h2>
         <div class="flex flex-col sm:flex-row gap-4">
@@ -90,63 +89,45 @@
         </div>
       </section>
 
-      <!-- Main Navigation Grid -->
       <section id="main-navigation">
-        <!-- 
-          MODIFICATION: 
-          Changed grid to be 3-wide on medium screens (md:grid-cols-3)
-          Removed lg:grid-cols-4
-          This makes a 9-button layout look perfect.
-        -->
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
           
-          <!-- Navigation Button -->
           <button onclick="location.href='account2.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
             Accounts
           </button>
           
-          <!-- Navigation Button -->
           <button onclick="location.href='mainbank.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
             Main Bank
           </button>
           
-          <!-- Navigation Button -->
           <button onclick="location.href='forex.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
             Forex
           </button>
           
-          <!-- Navigation Button -->
           <button onclick="location.href='chipbank.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
             Chip Bank
           </button>
 
-          <!-- 
-            NEW BUTTON:
-            Added Reimbursement button
-          -->
-          <button onclick="location.href='reimbursement.html'" class="p-6 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
+          <button onclick="location.href='reimbursement.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
             Reimbursement
           </button>
           
-          <!-- Navigation Button -->
           <button onclick="location.href='cagereport.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
             Cage Report
           </button>
           
-          <!-- Navigation Button -->
           <button onclick="location.href='otherreceipt.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
             Other Receipt
           </button>
           
-          <!-- 
-            MODIFICATION:
-            Removed col-span classes so it fits the new 3-wide grid.
-          -->
           <button onclick="location.href='transactionhistory.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
             Transaction History
           </button>
+          
+          <button onclick="location.href='marker.html'" class="p-6 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
+            Marker Bank
+          </button>
 
-          <!-- NEW: Settings Button -->
           <button id="open-settings-btn" class="p-6 bg-gray-600 hover:bg-red-700 text-white font-semibold rounded-lg text-lg transition-colors shadow-md">
             Settings
           </button>
@@ -157,7 +138,6 @@
     </div>
   </main>
 
-  <!-- NEW: Settings Modal -->
   <div id="settings-modal" class="modal-overlay">
     <div class="modal">
         <div class="modal-header">
@@ -178,7 +158,6 @@
     </div>
   </div>
 
-  <!-- Notification placeholder -->
   <div id="notification"></div>
 
   <script>

@@ -31,11 +31,12 @@
       background:#444;border:1px solid var(--chip);color:#fff;padding:10px;border-radius:8px;width:100%;
     }
     textarea{min-height:70px;resize:vertical}
-    .btn{padding:10px 12px;border:0;border-radius:8px;cursor:pointer}
+    .btn{padding:10px 12px;border:0;border-radius:8px;cursor:pointer; text-decoration: none; display: inline-block;}
     .btn.primary{background:#3e63dd;color:#fff}
     .btn.good{background:var(--ok);color:#fff}
     .btn.bad{background:var(--bad);color:#fff}
     .btn.ghost{background:#444;color:#fff}
+    .btn.small{padding: 5px 10px; font-size: 12px;}
     .right{justify-content:flex-end}
     .hint{font-size:12px;opacity:.8}
     .kpi{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
@@ -44,17 +45,17 @@
     .kpi .val{font-weight:800;font-size:20px}
     .stack{display:flex;flex-direction:column;gap:10px}
     .sep{height:1px;background:var(--line);margin:12px 0}
-    .badge-red{background:#3a2222;color:#ffb3b3}
-    .badge-green{background:#1e3a2f;color:#b9ffd1}
-    .badge-blue{background:#22313d;color:#cfe9ff}
+    .badge-red{background:#3a2222;color:#ffb3b3; padding: 2px 5px; border-radius: 4px; font-weight: 500;}
+    .badge-green{background:#1e3a2f;color:#b9ffd1; padding: 2px 5px; border-radius: 4px; font-weight: 500;}
+    .badge-blue{background:#22313d;color:#cfe9ff; padding: 2px 5px; border-radius: 4px; font-weight: 500;}
     .warning{color:#ffd27d;font-size:12px}
     .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
     
-    /* NEW: Activity Log Styles */
+    /* Activity Log Styles */
     .activity-log {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         font-size: 12px;
-        max-height: 250px; /* Matched height of per-loc table */
+        height: 250px; /* Matched height */
         overflow-y: auto;
     }
     .activity-log-list {
@@ -76,6 +77,28 @@
     }
     .activity-log-list .log-positive { color: #4CAF50; }
     .activity-log-list .log-negative { color: #f44336; }
+    
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.7);
+      display: none; /* Toggled to flex */
+      align-items: center; justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .modal {
+      background-color: #2e2e3e;
+      border-radius: 12px;
+      width: min(500px, 92vw);
+      padding: 24px; color: #fff;
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .close-btn { background: none; border: none; color: #fff; font-size: 28px; cursor: pointer; }
+
   </style>
 </head>
 <body>
@@ -89,113 +112,120 @@
   </nav>
 
   <main>
-    <!-- TOP SUMMARY -->
-    <section class="grid cols-3">
-      <div class="card">
-        <h2>Grand Totals</h2>
-        <div class="kpi" id="grandTotals">
-          <!-- filled by JS -->
+    <!-- NEW: Live Balance Sheet -->
+    <section class="card">
+        <div class="row" style="justify-content: space-between;">
+            <h2>Live Balance Sheet (Today)</h2>
+            <button class="btn ghost small" id="exportBalanceSheetBtn">Export CSV</button>
         </div>
-      </div>
-
-      <div class="card">
-        <h2>Per-Location Totals</h2>
-        <table class="table" id="perLocTable">
-          <thead><tr><th>Location</th><th>House</th><th>Guests</th><th>Total</th></tr></thead>
-          <tbody></tbody>
-          <tfoot><tr><td>Sum</td><td class="mono" id="sumHouse">₱0.00</td><td class="mono" id="sumGuest">₱0.00</td><td class="mono" id="sumAll">₱0.00</td></tr></tfoot>
-        </table>
-      </div>
-
-      <!-- NEW: Activity Log Card (Replaced Inventories) -->
-      <div class="card">
-        <h2>Recent House Activity</h2>
-        <div class="activity-log">
-            <ul class="activity-log-list" id="activityLogList">
-                <!-- <li><span class="log-time">[11/11/2025]</span> Game Settle: +1000</li> -->
-            </ul>
+        <div class="hint">This is an automated summary of all live funds. "Opening" balances are calculated based on today's activity.</div>
+        <div class="sep"></div>
+        <div style="overflow-x: auto;">
+            <table class="table" id="balanceSheetTable">
+                <thead>
+                    <tr>
+                        <th>Location</th>
+                        <th class="mono">Opening House</th>
+                        <th class="mono">+ Receipts</th>
+                        <th class="mono">- Expenses</th>
+                        <th class="mono">+/- Game Rev</th>
+                        <th class="mono">= Ending House (Live)</th>
+                        <th class="mono">Guest Balance (Live)</th>
+                        <th class="mono">= Total Location</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- JS will fill this -->
+                </tbody>
+                <tfoot>
+                    <!-- JS will fill this -->
+                </tfoot>
+            </table>
         </div>
-      </div>
     </section>
 
-    <!-- MOVED: Inventories and House Balances -->
+    <!-- MODIFIED: House Balances (now with Add/Deduct) -->
     <section class="grid cols-2" style="margin-top:18px;">
         <div class="card">
             <h2>House Balances by Location</h2>
-            <div class="hint">Use this to record the house’s portion per location. Guests’ side is auto-summed from accounts.</div>
+            <div class="hint">Use buttons to add or deduct funds from the house balance.</div>
             <table class="table" id="houseTable">
-              <thead><tr><th>Location</th><th>House Balance</th><th></th></tr></thead>
+              <thead><tr><th>Location</th><th>House Balance</th><th>Actions</th></tr></thead>
               <tbody><!-- rows inserted --></tbody>
               <tfoot><tr><td>Total House</td><td class="mono" id="houseTotal">₱0.00</td><td></td></tr></tfoot>
             </table>
-            <div class="row right"><button class="btn primary" id="saveHouseBtn">Save House Balances</button></div>
+            <!-- REMOVED: Save House Balances Button -->
         </div>
 
+        <!-- Activity Log Card (Moved) -->
         <div class="card">
-            <h2>Inventories</h2>
-            <div class="stack">
-              <div class="row"><span class="pill">Crypto</span></div>
-              <div class="grid cols-2">
-                <div>
-                  <label>USDT TRC-20</label>
-                  <input id="inv-usdt-trc20" type="number" step="0.01" />
-                </div>
-                <div>
-                  <label>USDT ERC-20</label>
-                  <input id="inv-usdt-erc20" type="number" step="0.01" />
-                </div>
-              </div>
-              <div class="row"><span class="pill">Forex</span></div>
-              <div class="grid cols-2">
-                <div><label>JPY</label><input id="fx-jpy" type="number" step="0.01"/></div>
-                <div><label>KRW</label><input id="fx-krw" type="number" step="0.01"/></div>
-                <div><label>USD</label><input id="fx-usd" type="number" step="0.01"/></div>
-                <div><label>HKD</label><input id="fx-hkd" type="number" step="0.01"/></div>
-              </div>
-              <div class="row right">
-                <button class="btn good" id="saveInvBtn">Save Inventories</button>
-              </div>
+            <h2>Recent House Activity</h2>
+            <div class="activity-log">
+                <ul class="activity-log-list" id="activityLogList">
+                    <!-- <li><span class="log-time">[11/11/2025]</span> Game Settle: +1000</li> -->
+                </ul>
             </div>
         </div>
     </section>
 
-    <!-- 
-        *** MODIFICATION ***
-        REMOVED the entire "Reimbursements & Expenses" section.
-        It is now fully handled in reimbursement.html
-    -->
-
-    <!-- MARKERS -->
-    <section class="card" style="margin-top:18px;">
-      <h2>Active Markers</h2>
-      <div class="row">
-        <button class="btn ghost" id="importMarkersBtn" title="Try to import from account data">Import from Accounts</button>
-        <div class="warning">If account data doesn’t include markers, add them below.</div>
-      </div>
-      <div class="sep"></div>
-      <form id="markerForm" class="grid cols-3">
-        <div><label>Account No.</label><input id="mkAcc" placeholder="e.g. BSM001"/></div>
-        <div><label>Name</label><input id="mkName" placeholder="Guest Name"/></div>
-        <div><label>Amount</label><input id="mkAmt" type="number" step="0.01"/></div>
-        <div><label>Status</label>
-          <select id="mkStatus"><option value="active">Active</option><option value="settled">Settled</option></select>
+    <!-- MODIFIED: Inventories (now dynamic) -->
+    <section class="grid cols-2" style="margin-top:18px;">
+        <div class="card">
+            <h2>Inventories</h2>
+            <div class="stack">
+                <div class="row" style="justify-content: space-between;">
+                    <span class="pill">Crypto</span>
+                    <div>
+                        <button class="btn good small" id="cryptoTransferInBtn">Transfer In</button>
+                        <button class="btn bad small" id="cryptoTransferOutBtn">Transfer Out</button>
+                    </div>
+                </div>
+                <div class="grid cols-2">
+                    <div>
+                    <label>USDT TRC-20</label>
+                    <input id="inv-usdt-trc20" type="number" step="0.01" />
+                    </div>
+                    <div>
+                    <label>USDT ERC-20</label>
+                    <input id="inv-usdt-erc20" type="number" step="0.01" />
+                    </div>
+                </div>
+                <div class="sep"></div>
+                <div class="row"><span class="pill">Forex</span></div>
+                <!-- Dynamic Forex List -->
+                <div class="stack" id="forexListContainer">
+                    <!-- JS will fill this -->
+                </div>
+                <!-- Add New Forex Form -->
+                <div class="row" style="margin-top: 10px;">
+                    <input id="newForexCurrency" type="text" placeholder="New currency code (e.g. CNY)" style="flex: 1;"/>
+                    <button class="btn primary small" id="addForexBtn">Add</button>
+                </div>
+                
+                <div class="sep"></div>
+                <div class="row right">
+                    <button class="btn good" id="saveInvBtn">Save Inventories</button>
+                </div>
+            </div>
         </div>
-        <div style="grid-column:1/-1;"><label>Remarks</label><textarea id="mkNote"></textarea></div>
-        <div class="row right" style="grid-column:1/-1;"><button class="btn primary" type="submit">Add Marker</button></div>
-      </form>
-      <div class="sep"></div>
-      <table class="table" id="markerTable">
-        <thead><tr><th>Account</th><th>Name</th><th>Status</th><th class="mono">Amount</th><th></th></tr></thead>
-        <tbody></tbody>
-        <tfoot><tr><td colspan="3">Active Total</td><td class="mono" id="markerTotal">₱0.00</td><td></td></tr></tfoot>
-      </table>
+        
+        <!-- NEW: Crypto Transfer Log -->
+        <div class="card">
+            <h2>Crypto Transfer Log</h2>
+            <div class="activity-log">
+                <ul class="activity-log-list" id="cryptoLogList">
+                    <!-- JS will fill this -->
+                </ul>
+            </div>
+        </div>
     </section>
+
 
     <!-- MODIFIED: Monthly Game Performance (Automated) -->
     <section class="card" style="margin-top:18px;">
-      <h2>Monthly Game Record (Auto-Calculated)</h2>
-      <div class="row right">
-        <button class="btn primary" id="recalcMonthlyBtn">Recalculate Monthly Data</button>
+      <div class="row" style="justify-content: space-between;">
+        <h2>Monthly Game Record (Auto-Calculated)</h2>
+        <button class="btn ghost small" id="exportMonthlyGameBtn">Export CSV</button>
       </div>
       <div class="hint">This table sums all 'Settled' games from the Game Record, grouped by month.</div>
       <div class="sep"></div>
@@ -219,11 +249,11 @@
 
     <!-- MODIFIED: Daily Live View (Automated) -->
     <section class="card" style="margin-top:18px;">
-      <h2>Live Daily Revenue vs Expenses (Auto-Calculated)</h2>
-      <div class="row right">
-        <button class="btn primary" id="recalcDailyBtn">Recalculate Daily Data</button>
+      <div class="row" style="justify-content: space-between;">
+        <h2>Live Daily Revenue vs Expenses (Auto-Calculated)</h2>
+        <button class="btn ghost small" id="exportDailyNetBtn">Export CSV</button>
       </div>
-      <div class="hint">This table sums 'Game Revenue (Net)' from settled games and subtracts 'Expenses' from this page, grouped by day.</div>
+      <div class="hint">This table sums 'Game Revenue (Net)' from settled games and 'Expenses' from the reimbursement page, grouped by day.</div>
       <div class="sep"></div>
       <table class="table" id="dailyTable">
         <thead><tr><th>Date</th><th class="mono">Game Revenue (Net)</th><th class="mono">Expenses</th><th class="mono">Net</th><th></th></tr></thead>
@@ -233,6 +263,37 @@
         <tfoot><tr><td>Totals</td><td class="mono" id="dyTR">₱0.00</td><td class="mono" id="dyTE">₱0.00</td><td class="mono" id="dyTN">₱0.00</td><td></td></tr></tfoot>
       </table>
     </section>
+    
+    <!-- NEW: Crypto Transfer Modal -->
+    <div id="cryptoTransferModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="cryptoModalTitle" class="text-2xl font-bold">Crypto Transfer</h2>
+                <button id="closeCryptoModalBtn" class="close-btn">&times;</button>
+            </div>
+            <form id="cryptoTransferForm" class="stack">
+                <input type="hidden" id="cryptoTransferType" />
+                <div>
+                    <label>Currency</label>
+                    <select id="cryptoModalCurrency" required>
+                        <option value="usdt_trc20">USDT TRC-20</option>
+                        <option value="usdt_erc20">USDT ERC-20</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Amount</label>
+                    <input id="cryptoModalAmount" type="number" step="0.01" min="0" required />
+                </div>
+                <div>
+                    <label>Remarks</label>
+                    <textarea id="cryptoModalRemarks" placeholder="e.g. From Binance, To player X, etc." required></textarea>
+                </div>
+                <div class="row right">
+                    <button type="submit" class="btn primary">Process Transfer</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <div id="toast" style="position:fixed;bottom:20px;right:20px;padding:12px 16px;border-radius:8px;background:#333;opacity:0;transition:.3s">Saved</div>
   </main>
@@ -244,7 +305,7 @@
 -------------------------------------------------------------------*/
 const ACCOUNT_STORAGE_KEY = 'account-dashboard:v1'; // your existing key (accounts/locations)
 const MAINBANK_KEY = 'mainbank:v1';
-const GAME_RECORD_KEY = 'gamerecord:v1'; // NEW
+const GAME_RECORD_KEY = 'gamerecord:v1'; 
 
 const DataBridge = {
   async loadAccounts() {
@@ -265,35 +326,52 @@ const DataBridge = {
         houseBalances: {}, // {loc: number}
         activityLog: [], // For game settlements
         crypto: { usdt_trc20:0, usdt_erc20:0 },
-        forex: { jpy:0, krw:0, usd:0, hkd:0 },
-        // --- MODIFIED: New single expense category list ---
+        cryptoLog: [], // NEW: {id, date, type, currency, amount, remarks}
+        forex: [ // NEW: Array structure
+            { currency: 'JPY', amount: 0 },
+            { currency: 'KRW', amount: 0 },
+            { currency: 'USD', amount: 0 },
+            { currency: 'HKD', amount: 0 }
+        ],
         expenseCategories: [
             "Expense Hotel", "Expense Fnb", "Expense Salary", "Expense Car", "Expense General Supplies",
             "Expense Transportation", "Expense Security", "Expense Rent", "Expense Employee Benefit",
             "Expense Consultation", "Subsciption (incl CC Payment)", "BSM Expense", "BGC Expense",
             "WTP Expense", "PIGO Expense", "Revenue Share", "Losing Back", "Lost & Found Return"
         ],
-        // --- END MODIFICATION ---
         expenses: [], // {id,date,category,location,amount,remarks}
-        otherReceipts: [], // --- NEW: Added for otherreceipt.html ---
+        otherReceipts: [], 
         markers: [],  // {id,accountNumber,name,amount,status,remarks}
         monthlyGame: [], // {id,month,buyIn,winLose,share,rolling,commission,promoName,ngr}
         daily: [] // {id,date,rev,exp,net,notes}
       };
-      // Removed old junket/non-junket categories
       localStorage.setItem(MAINBANK_KEY, JSON.stringify(init));
       return init;
     }
     const data = JSON.parse(raw);
-    // Ensure new fields exist on old data
+    // --- Migrations and field assurances ---
     if (!data.activityLog) data.activityLog = [];
     if (!data.houseBalances) data.houseBalances = {};
-    
-    // --- NEW: Add otherReceipts array if missing ---
     if (!data.otherReceipts) data.otherReceipts = [];
-    // --- END NEW ---
+    if (!data.expenses) data.expenses = [];
+    if (!data.markers) data.markers = [];
+    if (!data.cryptoLog) data.cryptoLog = []; // NEW
+    if (!data.crypto) data.crypto = { usdt_trc20:0, usdt_erc20:0 }; // NEW
 
-    // --- NEW: Migration for expense categories ---
+    // NEW: Migrate Forex from object to array
+    if (data.forex && !Array.isArray(data.forex)) {
+        data.forex = Object.keys(data.forex).map(key => ({
+            currency: key.toUpperCase(),
+            amount: data.forex[key] || 0
+        }));
+    } else if (!data.forex) {
+        data.forex = [
+            { currency: 'JPY', amount: 0 }, { currency: 'KRW', amount: 0 },
+            { currency: 'USD', amount: 0 }, { currency: 'HKD', amount: 0 }
+        ];
+    }
+
+    // (Expense category migration remains)
     if (data.junketExpenseCategories || data.nonJunketExpenseCategories) {
         data.expenseCategories = [
             "Expense Hotel", "Expense Fnb", "Expense Salary", "Expense Car", "Expense General Supplies",
@@ -301,20 +379,17 @@ const DataBridge = {
             "Expense Consultation", "Subsciption (incl CC Payment)", "BSM Expense", "BGC Expense",
             "WTP Expense", "PIGO Expense", "Revenue Share", "Losing Back", "Lost & Found Return"
         ];
-        // Merge old expenses into new single list if they exist
         if (data.expenses && data.expenses.length > 0 && data.expenses[0].kind) {
-            data.expenses.forEach(e => { delete e.kind; }); // Remove old 'kind' property
+            data.expenses.forEach(e => { delete e.kind; });
         }
         delete data.junketExpenseCategories;
         delete data.nonJunketExpenseCategories;
     }
     if (!data.expenseCategories) {
-         data.expenseCategories = ["General"]; // Fallback
+         data.expenseCategories = ["General"];
     }
-    // --- END MIGRATION ---
     return data;
   },
-  // NEW: Load game records
   async loadGameRecords() {
     const raw = localStorage.getItem(GAME_RECORD_KEY);
     if (!raw) return [];
@@ -338,130 +413,165 @@ const toast=(m='Saved')=>{
   const t=document.getElementById('toast'); t.textContent=m; t.style.opacity=1;
   setTimeout(()=>t.style.opacity=0,1200);
 };
+const isToday = (dateString) => {
+    if (!dateString) return false;
+    const today = new Date();
+    const date = new Date(dateString); 
+    return date.getUTCFullYear() === today.getUTCFullYear() &&
+           date.getUTCMonth() === today.getUTCMonth() &&
+           date.getUTCDate() === today.getUTCDate();
+};
+// NEW: CSV Export Helper
+function exportToCSV(filename, rows) {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    rows.forEach(rowArray => {
+        let row = rowArray.map(cell => {
+            let str = String(cell).replace(/"/g, '""');
+            if (str.includes(',')) str = `"${str}"`;
+            return str;
+        }).join(",");
+        csvContent += row + "\r\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link); 
+    link.click();
+    document.body.removeChild(link);
+    toast('Exported to CSV');
+}
+
 
 // state
-let MB = null;        // mainbank
-let ACC = {accounts:[], locations:[]}; // accounts/locations
-let GAMES = []; // NEW
+let MB = null;        
+let ACC = {accounts:[], locations:[]};
+let GAMES = []; 
 
 // DOM refs
-const perLocTBody = document.querySelector('#perLocTable tbody');
-const sumHouse = document.getElementById('sumHouse');
-const sumGuest = document.getElementById('sumGuest');
-const sumAll = document.getElementById('sumAll');
-const grandTotals = document.getElementById('grandTotals');
 const activityLogList = document.getElementById('activityLogList'); 
-
 const houseTBody = document.querySelector('#houseTable tbody');
 const houseTotal = document.getElementById('houseTotal');
-const saveHouseBtn = document.getElementById('saveHouseBtn');
 
+// --- Inventory Refs ---
 const invTrc = document.getElementById('inv-usdt-trc20');
 const invErc = document.getElementById('inv-usdt-erc20');
-const fxJPY = document.getElementById('fx-jpy');
-const fxKRW = document.getElementById('fx-krw');
-const fxUSD = document.getElementById('fx-usd');
-const fxHKD = document.getElementById('fx-hkd');
-document.getElementById('saveInvBtn').addEventListener('click', async ()=>{
-  MB.crypto.usdt_trc20 = +invTrc.value||0;
-  MB.crypto.usdt_erc20 = +invErc.value||0;
-  MB.forex = { jpy:+fxJPY.value||0, krw:+fxKRW.value||0, usd:+fxUSD.value||0, hkd:+fxHKD.value||0 };
-  await DataBridge.saveMainbank(MB); toast('Inventories saved');
-  renderTop(); // We don't re-render the log here, just top KPIs
-});
+const forexListContainer = document.getElementById('forexListContainer');
+const newForexCurrency = document.getElementById('newForexCurrency');
+const addForexBtn = document.getElementById('addForexBtn');
+const saveInvBtn = document.getElementById('saveInvBtn');
 
-// ---
-// --- MODIFIED: Expense System ---
-// ---
-// All DOM refs, event listeners, and functions (renderExpenses, delExpense, exportExpensesToCSV)
-// have been removed from this file.
-// The data (MB.expenses) is still loaded in the boot() function
-// for the "Live Daily Revenue" report, but it is no longer rendered here.
-// --- END MODIFICATION ---
+// --- Crypto Modal Refs ---
+const cryptoTransferModal = document.getElementById('cryptoTransferModal');
+const cryptoModalTitle = document.getElementById('cryptoModalTitle');
+const cryptoTransferForm = document.getElementById('cryptoTransferForm');
+const cryptoTransferType = document.getElementById('cryptoTransferType');
+const cryptoModalCurrency = document.getElementById('cryptoModalCurrency');
+const cryptoModalAmount = document.getElementById('cryptoModalAmount');
+const cryptoModalRemarks = document.getElementById('cryptoModalRemarks');
+const cryptoLogList = document.getElementById('cryptoLogList');
 
-
-// markers
-const markerTBody = document.querySelector('#markerTable tbody');
-const markerTotal = document.getElementById('markerTotal');
-document.getElementById('markerForm').addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const row = {
-    id: uid(),
-    accountNumber: document.getElementById('mkAcc').value.trim(),
-    name: document.getElementById('mkName').value.trim(),
-    amount: +document.getElementById('mkAmt').value || 0,
-    status: document.getElementById('mkStatus').value,
-    remarks: document.getElementById('mkNote').value.trim()
-  };
-  MB.markers.unshift(row);
-  await DataBridge.saveMainbank(MB); toast('Marker added'); renderMarkers();
-});
-document.getElementById('importMarkersBtn').addEventListener('click', ()=>{
-  // Best effort: if an account has creditLine, treat as potential marker placeholder
-  const guesses = ACC.accounts
-    .filter(a => (a.creditLine||0) > 0)
-    .map(a => ({id:uid(),accountNumber:a.accountNumber,name:a.name,amount:+a.creditLine||0,status:'active',remarks:'Imported from account creditLine'}));
-  if (guesses.length){
-    MB.markers = mergeUnique(MB.markers, guesses, x=>x.accountNumber+':'+x.amount);
-    DataBridge.saveMainbank(MB).then(()=>{toast('Markers imported'); renderMarkers();});
-  } else {
-    toast('No markers found in accounts');
-  }
-});
-
-// house table editing
-saveHouseBtn.addEventListener('click', async ()=>{
-  // read inputs
-  ACC.locations.forEach(loc=>{
-    const el = document.querySelector(`input[data-house="${loc}"]`);
-    MB.houseBalances[loc] = +el.value || 0;
-  });
-  await DataBridge.saveMainbank(MB); toast('House balances saved');
-  renderTop();
-});
 
 // refresh
 document.getElementById('refreshBtn').addEventListener('click', async ()=>{ await boot(); toast('Refreshed'); });
 
 /* -------------------- Rendering -------------------- */
-function renderTop(){
-  // compute guest totals by location from ACC state (accounts + locations) 
-  const guestTotals = {};
-  ACC.locations.forEach(loc => guestTotals[loc]=0);
-  ACC.accounts.forEach(a => {
-    // Ensure balances object exists
-    if (!a.balances) a.balances = {};
-    ACC.locations.forEach(loc => guestTotals[loc] += (a.balances?.[loc]||0));
-  });
 
-  // per-location table
-  perLocTBody.innerHTML='';
-  let sumH=0,sumG=0;
-  ACC.locations.forEach(loc=>{
-    const h = +MB.houseBalances[loc]||0;
-    const g = +guestTotals[loc]||0;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${cap(loc)}</td><td class="mono">${fmtPHP(h)}</td><td class="mono">${fmtPHP(g)}</td><td class="mono">${fmtPHP(h+g)}</td>`;
-    perLocTBody.appendChild(tr);
-    sumH+=h; sumG+=g;
-  });
-  sumHouse.textContent = fmtPHP(sumH);
-  sumGuest.textContent = fmtPHP(sumG);
-  sumAll.textContent = fmtPHP(sumH+sumG);
+// NEW: Render Balance Sheet
+function renderBalanceSheet() {
+    const tableBody = document.querySelector('#balanceSheetTable tbody');
+    const tableFoot = document.querySelector('#balanceSheetTable tfoot');
+    tableBody.innerHTML = '';
+    tableFoot.innerHTML = '';
 
-  // KPIs
-  grandTotals.innerHTML = '';
-  addKPI('House Total', fmtPHP(sumH));
-  addKPI('Guest Total', fmtPHP(sumG));
-  addKPI('All Locations', fmtPHP(sumH+sumG));
+    const today = new Date().toISOString().slice(0, 10);
+    
+    // 1. Calculate Guest Balances per location
+    const guestTotals = {};
+    ACC.locations.forEach(loc => guestTotals[loc] = 0);
+    ACC.accounts.forEach(a => {
+        if (!a.balances) a.balances = {};
+        ACC.locations.forEach(loc => guestTotals[loc] += (a.balances?.[loc]||0));
+    });
 
-  // inventories inputs
-  invTrc.value = MB.crypto.usdt_trc20||0;
-  invErc.value = MB.crypto.usdt_erc20||0;
-  fxJPY.value = MB.forex.jpy||0; fxKRW.value = MB.forex.krw||0; fxUSD.value = MB.forex.usd||0; fxHKD.value = MB.forex.hkd||0;
+    // 2. Calculate Today's activity per location
+    const todayReceipts = {};
+    const todayExpenses = {};
+    const todayGameRevenue = {};
+    ACC.locations.forEach(loc => {
+        todayReceipts[loc] = 0;
+        todayExpenses[loc] = 0;
+        todayGameRevenue[loc] = 0;
+    });
+
+    MB.otherReceipts.forEach(r => {
+        if (isToday(r.date)) {
+            todayReceipts[r.location] = (todayReceipts[r.location] || 0) + (r.amount || 0);
+        }
+    });
+    MB.expenses.forEach(e => {
+        if (isToday(e.date)) {
+            todayExpenses[e.location] = (todayExpenses[e.location] || 0) + (e.amount || 0);
+        }
+    });
+    GAMES.forEach(g => {
+        if (g.status === 'settled' && isToday(g.date)) { 
+            todayGameRevenue[g.location] = (todayGameRevenue[g.location] || 0) + (g.revenue || 0);
+        }
+    });
+    
+    // 3. Render Table Rows
+    let totOpening = 0, totReceipts = 0, totExpenses = 0, totGameRev = 0, totEnding = 0, totGuest = 0, totTotal = 0;
+
+    ACC.locations.forEach(loc => {
+        const endingHouse = MB.houseBalances[loc] || 0;
+        const receipts = todayReceipts[loc];
+        const expenses = todayExpenses[loc];
+        const gameRev = todayGameRevenue[loc];
+        
+        const openingHouse = endingHouse - receipts + expenses - gameRev;
+        const guestBalance = guestTotals[loc];
+        const totalLocation = endingHouse + guestBalance;
+
+        totOpening += openingHouse;
+        totReceipts += receipts;
+        totExpenses += expenses;
+        totGameRev += gameRev;
+        totEnding += endingHouse;
+        totGuest += guestBalance;
+        totTotal += totalLocation;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${cap(loc)}</td>
+            <td class="mono">${fmtPHP(openingHouse)}</td>
+            <td class="mono ${receipts > 0 ? 'badge-green' : ''}">${fmtPHP(receipts)}</td>
+            <td class="mono ${expenses > 0 ? 'badge-red' : ''}">${fmtPHP(expenses)}</td>
+            <td class="mono ${gameRev > 0 ? 'badge-green' : (gameRev < 0 ? 'badge-red' : '')}">${fmtPHP(gameRev)}</td>
+            <td class="mono">${fmtPHP(endingHouse)}</td>
+            <td class="mono">${fmtPHP(guestBalance)}</td>
+            <td class="mono">${fmtPHP(totalLocation)}</td>
+        `;
+        tableBody.appendChild(tr);
+    });
+
+    // 4. Render Footer
+    const tfoot = document.createElement('tr');
+    tfoot.innerHTML = `
+        <td><strong>Totals</strong></td>
+        <td class="mono"><strong>${fmtPHP(totOpening)}</strong></td>
+        <td class="mono"><strong>${fmtPHP(totReceipts)}</strong></td>
+        <td class="mono"><strong>${fmtPHP(totExpenses)}</strong></td>
+        <td class="mono"><strong>${fmtPHP(totGameRev)}</strong></td>
+        <td class="mono"><strong>${fmtPHP(totEnding)}</strong></td>
+        <td class="mono"><strong>${fmtPHP(totGuest)}</strong></td>
+        <td class="mono"><strong>${fmtPHP(totTotal)}</strong></td>
+    `;
+    tableFoot.appendChild(tfoot);
 }
 
-// NEW: Render Activity Log
+
 function renderActivityLog() {
     activityLogList.innerHTML = '';
     if (!MB.activityLog || MB.activityLog.length === 0) {
@@ -469,25 +579,21 @@ function renderActivityLog() {
         return;
     }
     
-    // Show most recent 50
     MB.activityLog.slice(0, 50).forEach(log => {
         const li = document.createElement('li');
-        
-        // Match for timestamp
         const timeMatch = log.match(/^\[(.*?)\]\s/);
         let time = '';
         let msg = log;
         
         if (timeMatch) {
             time = timeMatch[1];
-            msg = log.replace(timeMatch[0], ''); // Remove timestamp from msg
+            msg = log.replace(timeMatch[0], ''); 
         }
         
-        // Color coding for net change
         let netClass = '';
-        if (msg.includes('Net +') || log.includes('Expense VOID: +') || log.includes('Other Receipt: +')) { // Modified
+        if (msg.includes('Net +') || log.includes('Expense VOID: +') || log.includes('Other Receipt: +') || msg.includes('Crypto IN')) { 
             netClass = 'log-positive';
-        } else if (msg.includes('Net -') || log.includes('Expense: -') || log.includes('Receipt VOID: -')) { // Modified
+        } else if (msg.includes('Net -') || log.includes('Expense: -') || log.includes('Receipt VOID: -') || msg.includes('Crypto OUT')) { 
             netClass = 'log-negative';
         }
         
@@ -503,110 +609,119 @@ function renderHouseInputs(){
     const v = +MB.houseBalances[loc]||0;
     const tr=document.createElement('tr');
     tr.innerHTML = `<td>${cap(loc)}</td>
-      <td><input data-house="${loc}" type="number" step="0.01" value="${v}"/></td>
-      <td></td>`;
+      <td class="mono">${fmtPHP(v)}</td>
+      <td>
+        <a href="otherreceipt.html" class="btn good small">Add</a>
+        <a href="reimbursement.html" class="btn bad small">Deduct</a>
+      </td>`;
     houseTBody.appendChild(tr); t+=v;
   });
   houseTotal.textContent = fmtPHP(t);
 }
 
-// --- MODIFIED: Render new expense system ---
-function renderExpenses(){
-  // This function now ONLY renders the table.
-  
-  // render table
-  expenseTBody.innerHTML=''; 
-  let total = 0;
-  // Sort by date, newest first
-  const sortedExpenses = [...MB.expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+// --- NEW: Render Inventories (Crypto + Forex) ---
+function renderInventories() {
+    // 1. Render Crypto
+    invTrc.value = MB.crypto.usdt_trc20||0;
+    invErc.value = MB.crypto.usdt_erc20||0;
 
-  sortedExpenses.forEach(e=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML = `
-      <td>${e.date}</td>
-      <td>${e.category}</td>
-      <td>${cap(e.location||'')}</td>
-      <td class="mono">${fmtPHP(e.amount||0)}</td>
-      <td>${e.remarks || ''}</td>
-      <td><button class="btn ghost" onclick="delExpense('${e.id}')">Delete</button></td>`;
-    expenseTBody.appendChild(tr); 
-    total += +e.amount||0;
-  });
-  expenseTotal.textContent = fmtPHP(total);
+    // 2. Render Forex
+    forexListContainer.innerHTML = '';
+    MB.forex.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'row';
+        div.innerHTML = `
+            <label style="width: 80px;">${item.currency.toUpperCase()}</label>
+            <input type="number" step="0.01" value="${item.amount || 0}" data-forex-currency="${item.currency}" style="flex: 1;"/>
+            <button class="btn bad small" onclick="handleDeleteForex('${item.currency}')" style="flex-shrink: 0;">Delete</button>
+        `;
+        forexListContainer.appendChild(div);
+    });
 }
-// --- END MODIFICATION ---
 
-function renderMarkers(){
-  markerTBody.innerHTML='';
-  let total=0;
-  MB.markers.forEach(m=>{
-    if (m.status==='active') total+= +m.amount||0;
-    const badge = m.status==='active' ? 'badge-green' : 'badge-blue';
-    const tr=document.createElement('tr');
-    tr.innerHTML = `<td class="mono">${m.accountNumber||''}</td>
-      <td>${m.name||''}</td>
-      <td><span class="pill ${badge}">${m.status}</span></td>
-      <td class="mono">${fmtPHP(m.amount||0)}</td>
-      <td><button class="btn ghost" onclick="removeMarker('${m.id}')">Delete</button></td>`;
-    markerTBody.appendChild(tr);
-  });
-  markerTotal.textContent = fmtPHP(total);
+// --- NEW: Render Crypto Log ---
+function renderCryptoLog() {
+    cryptoLogList.innerHTML = '';
+    if (!MB.cryptoLog || MB.cryptoLog.length === 0) {
+        cryptoLogList.innerHTML = '<li>No crypto transfers logged.</li>';
+        return;
+    }
+    
+    // Show newest first
+    [...MB.cryptoLog].reverse().slice(0, 50).forEach(log => {
+        const li = document.createElement('li');
+        const ts = new Date(log.date).toLocaleString();
+        const typeClass = log.type === 'in' ? 'log-positive' : 'log-negative';
+        const typeLabel = log.type === 'in' ? 'IN' : 'OUT';
+        
+        li.innerHTML = `
+            <span class="log-time">[${ts}]</span>
+            <span class="${typeClass}" style="font-weight: bold;">${typeLabel} ${log.amount} ${log.currency.toUpperCase()}</span>
+            <br>
+            <span style="padding-left: 10px; color: #ccc;">${log.remarks}</span>
+        `;
+        cryptoLogList.appendChild(li);
+    });
 }
-function removeMarker(id){ MB.markers = MB.markers.filter(m=>m.id!==id); DataBridge.saveMainbank(MB).then(()=>{toast('Deleted'); renderMarkers();}); }
 
-// --- NEW: Automated Monthly Game Record ---
-function autoRenderMonthlyGame() {
+
+// --- Automated Report Functions ---
+
+function autoRenderMonthlyGame(forExport = false) {
     const gameTBody = document.querySelector('#gameTable tbody');
-    // --- MODIFIED: Renamed selectors for clarity ---
     const gmTB=document.getElementById('gmTB'), gmTWL=document.getElementById('gmTWL'), gmTShare=document.getElementById('gmTShare'),
           gmTR=document.getElementById('gmTR'), gmTC=document.getElementById('gmTC'), gmTRevenue=document.getElementById('gmTRevenue');
     
-    gameTBody.innerHTML = '';
-    // --- MODIFIED: Renamed totals for clarity ---
+    if (!forExport) gameTBody.innerHTML = '';
     let tb=0, twl=0, ts=0, tr=0, tc=0, tRev=0;
 
     const settledGames = GAMES.filter(g => g.status === 'settled');
-    const months = {}; // e.g., {'2025-11': { buyIn: 0, ... }}
+    const months = {}; 
 
     settledGames.forEach(game => {
-        const month = game.date.slice(0, 7); // '2025-11'
+        const month = game.date.slice(0, 7); 
         if (!months[month]) {
-            // --- MODIFIED: Added revenue and shareAmount ---
             months[month] = { buyIn: 0, winLose: 0, shareAmount: 0, rolling: 0, commission: 0, revenue: 0 };
         }
         
-        // ---
-        // --- MODIFIED LOGIC (Based on new calculation model) ---
-        // ---
         const gameWinLose = (game.winLose || 0);
         const gameComm = (game.commissionAmount || 0);
         const gameRolling = (game.rolling || 0);
-        // Use the stored Share Amount (gross)
         const gameGrossShare = (game.shareAmount || 0);
-        // Use the stored Revenue (net)
         const gameNetRevenue = (game.revenue || 0);
-        // --- END MODIFIED LOGIC ---
 
         months[month].buyIn += (game.capital || 0);
         months[month].winLose += gameWinLose;
-        months[month].shareAmount += gameGrossShare; // <-- Store Gross Share
+        months[month].shareAmount += gameGrossShare; 
         months[month].rolling += gameRolling;
         months[month].commission += gameComm;
-        months[month].revenue += gameNetRevenue; // <-- Store Net Revenue
+        months[month].revenue += gameNetRevenue; 
     });
 
     const sortedMonths = Object.keys(months).sort().reverse();
 
     if (sortedMonths.length === 0) {
-        gameTBody.innerHTML = `<tr><td colspan="8" class="hint">No settled games found.</td></tr>`;
+        if (!forExport) gameTBody.innerHTML = `<tr><td colspan="8" class="hint">No settled games found.</td></tr>`;
     }
 
+    // For CSV Export
+    if (forExport) {
+        const rows = [
+            ["Month", "Buy In", "Win/Lose", "Share Amt", "Rolling", "Commission", "Revenue (Net)"]
+        ];
+        sortedMonths.forEach(monthKey => {
+            const data = months[monthKey];
+            rows.push([monthKey, data.buyIn, data.winLose, data.shareAmount, data.rolling, data.commission, data.revenue]);
+        });
+        rows.push(["Totals", tb, twl, ts, tr, tc, tRev]);
+        return rows;
+    }
+
+    // For HTML Render
     sortedMonths.forEach(monthKey => {
         const data = months[monthKey];
-        // --- MODIFIED: Update totals ---
         tb+=data.buyIn; twl+=data.winLose; ts+=data.shareAmount; tr+=data.rolling; tc+=data.commission; tRev+=data.revenue;
         
-        // --- MODIFIED: Update table row to show Share Amt and Revenue (Net) ---
         const trEl = document.createElement('tr');
         trEl.innerHTML = `<td>${monthKey}</td>
           <td class="mono">${fmtPHP(data.buyIn)}</td>
@@ -619,28 +734,25 @@ function autoRenderMonthlyGame() {
         gameTBody.appendChild(trEl);
     });
 
-    // --- MODIFIED: Update total fields ---
     gmTB.textContent=fmtPHP(tb); gmTWL.textContent=fmtPHP(twl); gmTShare.textContent=fmtPHP(ts);
     gmTR.textContent=fmtPHP(tr); gmTC.textContent=fmtPHP(tc); gmTRevenue.textContent=fmtPHP(tRev);
-    toast('Monthly game data recalculated');
+    if (!forExport) toast('Monthly game data recalculated');
 }
 
-// --- NEW: Automated Daily Revenue vs Expenses ---
-function autoRenderDailyNet() {
+function autoRenderDailyNet(forExport = false) {
     const dailyTBody = document.querySelector('#dailyTable tbody');
     const dyTR=document.getElementById('dyTR'), dyTE=document.getElementById('dyTE'), dyTN=document.getElementById('dyTN');
 
-    dailyTBody.innerHTML = '';
+    if (!forExport) dailyTBody.innerHTML = '';
     let tr=0, te=0, tn=0;
 
-    const days = {}; // e.g., {'2025-11-11': { rev: 0, exp: 0 }}
+    const days = {}; 
 
     // 1. Aggregate revenue from settled games
     const settledGames = GAMES.filter(g => g.status === 'settled');
     settledGames.forEach(game => {
-        const date = game.date; // Use game start date
+        const date = game.date; 
         if (!days[date]) days[date] = { rev: 0, exp: 0 };
-        // 'revenue' from game record is the house's *NET* share
         days[date].rev += (game.revenue || 0);
     });
 
@@ -654,9 +766,24 @@ function autoRenderDailyNet() {
     const sortedDays = Object.keys(days).sort().reverse();
 
     if (sortedDays.length === 0) {
-        dailyTBody.innerHTML = `<tr><td colspan="5" class="hint">No daily data found.</td></tr>`;
+        if (!forExport) dailyTBody.innerHTML = `<tr><td colspan="5" class="hint">No daily data found.</td></tr>`;
     }
 
+    // For CSV Export
+    if (forExport) {
+        const rows = [
+            ["Date", "Game Revenue (Net)", "Expenses", "Net"]
+        ];
+        sortedDays.forEach(dateKey => {
+            const data = days[dateKey];
+            const net = data.rev - data.exp;
+            rows.push([dateKey, data.rev, data.exp, net]);
+        });
+        rows.push(["Totals", tr, te, tn]);
+        return rows;
+    }
+
+    // For HTML Render
     sortedDays.forEach(dateKey => {
         const data = days[dateKey];
         const net = data.rev - data.exp;
@@ -673,56 +800,190 @@ function autoRenderDailyNet() {
     });
 
     dyTR.textContent=fmtPHP(tr); dyTE.textContent=fmtPHP(te); dyTN.textContent=fmtPHP(tn);
-    toast('Daily revenue data recalculated');
+    if (!forExport) toast('Daily revenue data recalculated');
+}
+
+
+// --- NEW: Inventory Handlers ---
+function handleSaveInventories() {
+    // 1. Save Crypto
+    MB.crypto.usdt_trc20 = +invTrc.value||0;
+    MB.crypto.usdt_erc20 = +invErc.value||0;
+
+    // 2. Save Forex
+    const newForex = [];
+    const inputs = document.querySelectorAll('[data-forex-currency]');
+    inputs.forEach(input => {
+        const currency = input.dataset.forexCurrency;
+        const amount = +input.value || 0;
+        newForex.push({ currency, amount });
+    });
+    MB.forex = newForex;
+
+    DataBridge.saveMainbank(MB);
+    toast('Inventories saved');
+}
+
+function handleAddForex() {
+    const currency = newForexCurrency.value.trim().toUpperCase();
+    if (!currency) {
+        toast('Currency code cannot be empty', 'bad');
+        return;
+    }
+    if (MB.forex.find(item => item.currency === currency)) {
+        toast('Currency already exists', 'bad');
+        return;
+    }
+    MB.forex.push({ currency, amount: 0 });
+    DataBridge.saveMainbank(MB);
+    renderInventories();
+    newForexCurrency.value = '';
+}
+
+function handleDeleteForex(currency) {
+    if (!confirm(`Are you sure you want to delete ${currency}?`)) return;
+    MB.forex = MB.forex.filter(item => item.currency !== currency);
+    DataBridge.saveMainbank(MB);
+    renderInventories();
+    toast(`${currency} deleted`);
+}
+
+// --- NEW: Crypto Modal Handlers ---
+function openCryptoTransferModal(type) {
+    cryptoTransferForm.reset();
+    cryptoTransferType.value = type;
+    if (type === 'in') {
+        cryptoModalTitle.textContent = 'Crypto Transfer In';
+    } else {
+        cryptoModalTitle.textContent = 'Crypto Transfer Out';
+    }
+    cryptoTransferModal.style.display = 'flex';
+}
+
+function closeCryptoTransferModal() {
+    cryptoTransferModal.style.display = 'none';
+}
+
+function handleCryptoTransfer(e) {
+    e.preventDefault();
+    const type = cryptoTransferType.value; // 'in' or 'out'
+    const currency = cryptoModalCurrency.value; // 'usdt_trc20' or 'usdt_erc20'
+    const amount = +cryptoModalAmount.value;
+    const remarks = cryptoModalRemarks.value.trim();
+
+    if (amount <= 0) {
+        toast('Amount must be positive', 'bad');
+        return;
+    }
+    if (!remarks) {
+        toast('Remarks are required', 'bad');
+        return;
+    }
+
+    const logEntry = {
+        id: uid(),
+        date: new Date().toISOString(),
+        type,
+        currency,
+        amount,
+        remarks
+    };
+
+    // Update inventory
+    if (type === 'in') {
+        MB.crypto[currency] = (MB.crypto[currency] || 0) + amount;
+    } else {
+        MB.crypto[currency] = (MB.crypto[currency] || 0) - amount;
+    }
+    
+    // Add to crypto log
+    MB.cryptoLog.push(logEntry);
+
+    // Add to main house activity log
+    const ts = new Date().toLocaleString();
+    const logMsg = `[${ts}] Crypto ${type === 'in' ? 'IN' : 'OUT'}: ${amount} ${currency.toUpperCase()} (${remarks})`;
+    MB.activityLog.unshift(logMsg);
+    
+    DataBridge.saveMainbank(MB);
+    toast('Crypto transfer logged');
+    
+    closeCryptoTransferModal();
+    renderInventories();
+    renderCryptoLog();
+    renderActivityLog();
+}
+
+// --- NEW: Export Button Handlers ---
+function exportBalanceSheet() {
+    const table = document.getElementById('balanceSheetTable');
+    const rows = [];
+    table.querySelectorAll('tr').forEach(tr => {
+        const row = [];
+        tr.querySelectorAll('th, td').forEach(cell => {
+            // Use textContent to avoid HTML, strip "₱" and commas for clean numbers
+            let text = cell.textContent.replace(/₱/g, '').replace(/,/g, '');
+            row.push(text);
+        });
+        rows.push(row);
+    });
+    exportToCSV('mainbank_balance_sheet.csv', rows);
+}
+
+function exportMonthlyGame() {
+    const rows = autoRenderMonthlyGame(true); // Get data rows
+    exportToCSV('mainbank_monthly_game_report.csv', rows);
+}
+
+function exportDailyNet() {
+    const rows = autoRenderDailyNet(true); // Get data rows
+    exportToCSV('mainbank_daily_net_report.csv', rows);
 }
 
 
 // helpers
-function addKPI(label, val){
-  const c=document.createElement('div'); c.className='card';
-  c.innerHTML=`<h3>${label}</h3><div class="val">${val}</div>`;
-  grandTotals.appendChild(c);
-}
 function cap(s){ return (s||'').charAt(0).toUpperCase()+ (s||'').slice(1); }
 function mergeUnique(a,b,key){ const seen=new Set(a.map(x=>key(x))); b.forEach(x=>{const k=key(x);if(!seen.has(k)){a.push(x);seen.add(k);}}); return a; }
 
 /* -------------------- Boot -------------------- */
 async function boot(){
-  ACC = await DataBridge.loadAccounts(); // includes balances/locations for guests 
+  ACC = await DataBridge.loadAccounts(); 
   MB = await DataBridge.loadMainbank();
-  GAMES = await DataBridge.loadGameRecords(); // NEW
-  
-  // --- MODIFIED: Removed fillCats(), it's no longer here ---
+  GAMES = await DataBridge.loadGameRecords(); 
   
   // render location-dependent UIs
-  renderTop(); 
+  renderBalanceSheet(); 
   renderActivityLog(); 
   renderHouseInputs(); 
-  // --- renderExpenses() call removed ---
-  renderMarkers(); 
+  renderInventories(); // NEW
+  renderCryptoLog(); // NEW
   
-  // NEW: Call auto-renderers
+  // Call auto-renderers
   autoRenderMonthlyGame();
   autoRenderDailyNet();
   
-  // NEW: Bind recalculate buttons
-  document.getElementById('recalcMonthlyBtn').addEventListener('click', autoRenderMonthlyGame);
-  document.getElementById('recalcDailyBtn').addEventListener('click', autoRenderDailyNet);
+  // Bind recalculate buttons
+  document.getElementById('recalcMonthlyBtn').addEventListener('click', () => autoRenderMonthlyGame(false));
+  document.getElementById('recalcDailyBtn').addEventListener('click', () => autoRenderDailyNet(false));
 
-  // --- REMOVED: Bind Expense Export Button ---
+  // Bind inventory buttons
+  saveInvBtn.addEventListener('click', handleSaveInventories);
+  addForexBtn.addEventListener('click', handleAddForex);
   
-  // --- NEW: Bind Go To Reimbursements Button ---
-  document.getElementById('goToReimbursementsBtn').addEventListener('click', () => {
-      location.href = 'reimbursement.html';
-  });
-  // --- END NEW ---
+  // Bind crypto modal buttons
+  document.getElementById('cryptoTransferInBtn').addEventListener('click', () => openCryptoTransferModal('in'));
+  document.getElementById('cryptoTransferOutBtn').addEventListener('click', () => openCryptoTransferModal('out'));
+  document.getElementById('closeCryptoModalBtn').addEventListener('click', closeCryptoTransferModal);
+  cryptoTransferForm.addEventListener('submit', handleCryptoTransfer);
+  
+  // Bind export buttons
+  document.getElementById('exportBalanceSheetBtn').addEventListener('click', exportBalanceSheet);
+  document.getElementById('exportMonthlyGameBtn').addEventListener('click', exportMonthlyGame);
+  document.getElementById('exportDailyNetBtn').addEventListener('click', exportDailyNet);
 }
 
 // Add storage listener for real-time updates
 window.addEventListener('storage', (e) => {
-    // Check if mainbank, account, or game data was changed
     if (e.key === MAINBANK_KEY || e.key === ACCOUNT_STORAGE_KEY || e.key === GAME_RECORD_KEY) {
-        // Rerun boot to get fresh data and re-render everything
         boot();
     }
 });

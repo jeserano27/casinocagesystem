@@ -105,6 +105,43 @@
         .btn-send-company { background-color: #3b82f6; color: white; }
         .btn-send-company:hover { background-color: #2563eb; }
         /* --- END NEW STYLES --- */
+        
+        /* --- NEW: Summary Modal Styles --- */
+        .summary-box {
+            background: #3b3b4f;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #555;
+        }
+        .summary-row:last-child { border-bottom: none; }
+        .summary-label { color: #aaa; }
+        .summary-value { font-weight: bold; }
+        .summary-highlight { color: #4CAF50; font-size: 1.1em; }
+        
+        /* Live Settlement Preview */
+        .live-settle-preview {
+            background: #252535;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #444;
+        }
+        .live-preview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+        .live-preview-item {
+            display: flex;
+            justify-content: space-between;
+        }
 
 
         /* Notification */
@@ -271,19 +308,57 @@
         <div class="modal">
             <div class="modal-header">
                 <h2 class="text-2xl font-bold">Settle Game</h2>
-                <button class="close-btn" data-modal="settle-modal">&times;</button>
+                <button type="button" class="close-btn" data-modal="settle-modal">&times;</button>
             </div>
             <form id="settle-form">
-                <p class="mb-4">Enter the final cashout and rolling to settle this game. This action is final.</p>
+                <p class="mb-4 text-sm text-gray-400">Enter final cashout (excluding advances) and rolling. The summary below updates automatically.</p>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="form-row">
                         <label for="settle-cashout-amount">Final Cashout Amount</label>
                         <input type="number" id="settle-cashout-amount" placeholder="0.00" step="0.01" min="0" required>
+                        <!-- NEW: Helper text for advance -->
+                        <p id="advance-helper-text" class="text-xs text-yellow-500 mt-1 hidden">Existing Advance: 0.00</p>
                     </div>
                     <div class="form-row">
                         <label for="settle-rolling">Total Rolling</label>
                         <input type="number" id="settle-rolling" placeholder="0.00" step="0.01" min="0" required>
+                    </div>
+                </div>
+                
+                <!-- Live Settlement Preview Section -->
+                <div class="live-settle-preview">
+                    <h3 class="text-sm font-bold text-gray-300 mb-2 border-b border-gray-600 pb-1">Live Settlement Preview</h3>
+                    <div class="live-preview-grid">
+                        <div class="live-preview-item">
+                            <span class="text-gray-400">Capital:</span>
+                            <span id="preview-capital">0.00</span>
+                        </div>
+                         <!-- NEW: Advance Breakdown -->
+                        <div class="live-preview-item col-span-2 border-b border-gray-700 pb-1 mb-1">
+                             <span class="text-gray-400 text-xs">Prev Advance + Final = Total Cashout</span>
+                        </div>
+                        <div class="live-preview-item">
+                            <span class="text-gray-400">Total Cashout:</span>
+                            <span id="preview-total-cashout" class="font-bold text-yellow-400">0.00</span>
+                        </div>
+                         <!-- End NEW -->
+                        <div class="live-preview-item">
+                            <span class="text-gray-400">Win/Lose:</span>
+                            <span id="preview-winlose" class="font-bold">0.00</span>
+                        </div>
+                        <div class="live-preview-item">
+                            <span class="text-gray-400">Share Amt:</span>
+                            <span id="preview-share">0.00</span>
+                        </div>
+                        <div class="live-preview-item">
+                            <span class="text-gray-400">Commission:</span>
+                            <span id="preview-comm">0.00</span>
+                        </div>
+                        <div class="live-preview-item col-span-2 mt-1 pt-1 border-t border-gray-600">
+                            <span class="text-gray-300 font-bold">Net Revenue:</span>
+                            <span id="preview-revenue" class="font-bold text-lg text-blue-400">0.00</span>
+                        </div>
                     </div>
                 </div>
 
@@ -310,6 +385,23 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Summary Modal (Auto-opens after Settle) -->
+    <div id="summary-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 class="text-2xl font-bold">Settlement Summary</h2>
+                <button class="close-btn" data-modal="summary-modal">&times;</button>
+            </div>
+            <div id="summary-content" class="summary-box">
+                <!-- JS will fill this -->
+            </div>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeModal('summary-modal')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Close</button>
+                <button id="summary-send-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Send Report</button>
+            </div>
         </div>
     </div>
 
@@ -347,7 +439,9 @@
     let allLocations = [];
     let mainBankData = {}; 
     let currentModalGameId = null;
-    let urlGuestAccountNo = null; // NEW: Store the guest from URL
+    let lastSettledGameId = null; 
+    let urlGuestAccountNo = null; 
+    let currentAdvance = 0; // NEW: Track advance for modal
     
     // Pagination State
     let currentPage = 1;
@@ -367,9 +461,6 @@
         notification.classList.add('show');
         setTimeout(() => { notification.classList.remove('show'); }, 3000);
     }
-
-    // --- DELETED addGlobalLog FUNCTION ---
-    // (This function was removed)
 
     // --- NEW: Universal saveTransaction function ---
     function saveTransaction(txData) {
@@ -410,6 +501,28 @@
         }, 1000);
     }
 
+    function sendToTelegramGuest(message, telegramId) {
+        if (telegramId) {
+            const encodedMessage = encodeURIComponent(message);
+            // Use msg_url for direct messages
+            const url = `tg://msg_url?text=${encodedMessage}&to=${telegramId}`;
+            const newTab = window.open();
+            newTab.location.href = url;
+
+            // Fallback timer
+            setTimeout(() => {
+                if (newTab.document.hasFocus && !newTab.document.hidden) {
+                    newTab.close();
+                    sendToTelegram(message); // Fallback to general share
+                }
+            }, 1000);
+        } else {
+            // If no guest ID, just use the general share
+            sendToTelegram(message);
+        }
+    }
+
+    // NEW: Fallback copy function
     function fallbackCopyToClipboard(text) {
         try {
             const textArea = document.createElement('textarea');
@@ -714,16 +827,45 @@
         const amount = parseFloat(document.getElementById('advance-amount').value);
         const type = document.getElementById('advance-type').value;
 
-        if (type === 'Cash Chip') {
-            game.cashout += amount;
-        } else {
-            game.cashout += amount;
-            game.remarks = (game.remarks || '') + ` [Advance (NN): ${formatNumber(amount)}]`;
+        if (!amount || amount <= 0) {
+            showNotification('Please enter a valid amount.', 'error');
+            return;
+        }
+
+        // Helper to apply advance to a specific game record
+        const applyAdvance = (targetGame) => {
+            if (type === 'Cash Chip') {
+                targetGame.cashout += amount;
+            } else {
+                targetGame.cashout += amount;
+                // Add specific tag to identify this as advance
+                targetGame.remarks = (targetGame.remarks || '') + ` [Advance: ${formatNumber(amount)}]`;
+            }
+        };
+
+        // 1. Apply to the selected (Live) game
+        applyAdvance(game);
+        let message = 'Advance recorded!';
+
+        // 2. Check for Plan x2 Sync Logic
+        if (game.style === 'Plan x2 Live') {
+            // Find partner "Under" game
+            const underGame = allGameRecords.find(g => 
+                g.style === 'Plan x2 Under' && 
+                g.accountNo === game.accountNo && 
+                g.status === 'active' &&
+                g.date === game.date &&
+                g.location === game.location
+            );
+
+            if (underGame) {
+                applyAdvance(underGame);
+                message = 'Advance recorded! (Synced to Plan x2 Under)';
+            }
         }
 
         if (saveGameRecords()) {
-            showNotification('Advance recorded!', 'success');
-            // addGlobalLog(...) removed, not critical here
+            showNotification(message, 'success');
             closeModal('advance-modal');
             renderTable();
         }
@@ -732,7 +874,22 @@
     // --- Settle Game ---
     function openSettleModal(gameId) {
         currentModalGameId = gameId;
+        const game = allGameRecords.find(g => g.id === gameId);
+        if(!game) return;
+        
+        // --- NEW: Check for existing cashout (advance) ---
+        currentAdvance = game.cashout || 0;
+        
         document.getElementById('settle-form').reset();
+        
+        // --- NEW: Show advance helper text ---
+        const helperText = document.getElementById('advance-helper-text');
+        if(currentAdvance > 0) {
+            helperText.textContent = `Existing Advance: ${formatNumber(currentAdvance)}`;
+            helperText.classList.remove('hidden');
+        } else {
+            helperText.classList.add('hidden');
+        }
         
         const cashoutDest = document.getElementById('settle-cashout-dest');
         const rcDest = document.getElementById('settle-rc-dest');
@@ -744,52 +901,96 @@
             cashoutDest.innerHTML += option;
             rcDest.innerHTML += option;
         });
-
+        
+        updateLiveSettlementPreview();
         openModal('settle-modal');
     }
 
-    function handleSettleSubmit(e) {
-        e.preventDefault();
-        // --- MODIFIED ---
-        let logMessages = [];
-        // --- END MODIFICATION ---
+    // --- NEW: Live Settlement Calculation with Advance ---
+    function updateLiveSettlementPreview() {
+        const game = allGameRecords.find(g => g.id === currentModalGameId);
+        if (!game) return;
 
-        const gameIndex = allGameRecords.findIndex(g => g.id === currentModalGameId);
-        if (gameIndex === -1) return;
+        const capital = game.capital || 0;
+        const finalCashoutInput = parseFloat(document.getElementById('settle-cashout-amount').value) || 0;
+        const rolling = parseFloat(document.getElementById('settle-rolling').value) || 0;
 
-        const game = allGameRecords[gameIndex];
+        // Calculate Total Cashout = Existing Advance + Final Input
+        const totalCashout = currentAdvance + finalCashoutInput;
+        
+        const winLose = totalCashout - capital;
+        const commission = rolling * (game.commissionRate / 100);
+        const shareAmount = -(winLose * (game.revenueRateShare / 100));
+        const revenue = shareAmount - commission;
 
-        // --- 1. Get Form Data ---
-        const finalCashout = parseFloat(document.getElementById('settle-cashout-amount').value);
-        const totalRolling = parseFloat(document.getElementById('settle-rolling').value);
-        const cashoutDest = document.getElementById('settle-cashout-dest').value;
-        const rcDest = document.getElementById('settle-rc-dest').value;
+        document.getElementById('preview-capital').textContent = formatNumber(capital);
+        
+        // Update total cashout preview with breakdown
+        const totalCashoutEl = document.getElementById('preview-total-cashout');
+        totalCashoutEl.innerHTML = `${formatNumber(totalCashout)} <span class="text-xs text-gray-400 block">(Adv: ${formatNumber(currentAdvance)} + Final: ${formatNumber(finalCashoutInput)})</span>`;
+        
+        const wlEl = document.getElementById('preview-winlose');
+        wlEl.textContent = formatNumber(winLose);
+        wlEl.className = winLose >= 0 ? 'font-bold text-green-400' : 'font-bold text-red-400';
 
-        // --- 2. Perform Calculations ---
-        game.cashout = finalCashout; 
-        game.rolling = totalRolling;
+        const shareEl = document.getElementById('preview-share');
+        shareEl.textContent = formatNumber(shareAmount);
+        shareEl.className = shareAmount >= 0 ? 'text-green-400' : 'text-red-400';
+
+        document.getElementById('preview-comm').textContent = formatNumber(commission);
+
+        const revEl = document.getElementById('preview-revenue');
+        revEl.textContent = formatNumber(revenue);
+        revEl.className = revenue >= 0 ? 'font-bold text-lg text-green-400' : 'font-bold text-lg text-red-400';
+    }
+
+    // --- MODIFIED: Helper to Settle a Single Game ---
+    function performSettlement(game, finalCashoutInput, rolling, cashoutDest, rcDest, logMessages) {
+        // Calculate total cashout including advances
+        const existingCashout = game.cashout || 0;
+        // Note: For Plan x2 Under game, we might need to ensure it starts from 0 advance if it wasn't advanced
+        // But assuming advanced was only on Live game or separate. 
+        // If Plan x2 Under game is newly created/updated, it inherits amounts. 
+        // If it's an existing record we're updating, we take its state. 
+        
+        // For the "Under" game in Plan x2, we want it to MATCH the "Live" game's final stats (mostly).
+        // The prompt says "same amount of cashout and total rolling". 
+        // So we will overwrite the cashout completely with the calculated total from the main modal.
+        
+        let totalCashout = existingCashout + finalCashoutInput;
+        
+        // --- NEW LOGIC FOR PLAN X2 SYNC ---
+        // If this function is called for the "Under" game, we force its cashout to match the Live game's total.
+        // But here we are passing `finalCashoutInput` which is the *addition*.
+        // If the Under game didn't have an advance, `totalCashout` would just be the input.
+        // If the Live game HAD an advance, `totalCashout` for Live is higher.
+        // WE NEED THE TOTAL to match.
+        // So, the caller should pass the TOTAL CASHOUT if we want to force sync.
+        
+        // Let's stick to the logic: `game.cashout` becomes the total.
+        // For standard games, `totalCashout` is correct.
+        
+        game.cashout = totalCashout; 
+        game.rolling = rolling;
         game.status = 'settled';
         game.settlementInfo = {
             cashoutDest: cashoutDest,
-            rcDest: rcDest
+            rcDest: rcDest,
+            finalCashoutInput: finalCashoutInput 
         };
-        game.winLose = game.cashout - game.capital;
-        game.commissionAmount = game.rolling * (game.commissionRate / 100);
-
-        // --- 
-        // --- CORRECTED LOGIC (Based on your new definition) ---
-        // ---
-        // 1. Calculate Share Amount (Gross Share from W/L)
-        // (A player WIN is a loss for the house, so we use -)
-        game.shareAmount = -(game.winLose * (game.revenueRateShare / 100));
         
-        // 2. Calculate Revenue (Net Revenue)
-        // (Gross Share - Commission)
+        // Recalculate all stats based on total cashout
+        game.winLose = totalCashout - game.capital;
+        game.commissionAmount = game.rolling * (game.commissionRate / 100);
+        game.shareAmount = -(game.winLose * (game.revenueRateShare / 100));
         game.revenue = game.shareAmount - game.commissionAmount;
-        // --- END CORRECTED LOGIC ---
+        
+        // Append note about breakdown
+        if (existingCashout > 0) {
+            game.remarks = (game.remarks || '') + ` [Settle: Adv(${formatNumber(existingCashout)}) + Final(${formatNumber(finalCashoutInput)})]`;
+        }
 
-
-        // --- 3. Update Guest Account (if needed) ---
+        // Update Guest Account - ONLY pay the FINAL input amount, advance is already paid
         let didAccountUpdate = false;
         const guestAccount = allAccounts.find(acc => acc.accountNumber === game.accountNo);
 
@@ -797,18 +998,15 @@
             if (cashoutDest.startsWith('account-')) {
                 const loc = cashoutDest.replace('account-', '');
                 if (!guestAccount.balances) guestAccount.balances = {};
-                guestAccount.balances[loc] = (guestAccount.balances[loc] || 0) + game.cashout;
+                guestAccount.balances[loc] = (guestAccount.balances[loc] || 0) + finalCashoutInput; // Pay only final amount
                 didAccountUpdate = true;
-                // --- MODIFIED ---
-                logMessages.push(`Account TX: ${guestAccount.accountNumber} +${formatNumber(game.cashout)} to ${loc} (Settle Cashout)`);
-                // --- END MODIFICATION ---
-                // NEW: Log to central transaction history
+                logMessages.push(`Account TX: ${guestAccount.accountNumber} +${formatNumber(finalCashoutInput)} to ${loc} (Settle Final Cashout)`);
                 saveTransaction({
                     accountNo: guestAccount.accountNumber,
                     type: 'Game Settle',
-                    amount: game.cashout,
+                    amount: finalCashoutInput,
                     location: loc,
-                    remarks: `Settle cashout for game ${game.id}`
+                    remarks: `Settle final cashout for game ${game.id}`
                 });
             }
             if (rcDest.startsWith('account-')) {
@@ -816,10 +1014,7 @@
                 if (!guestAccount.balances) guestAccount.balances = {};
                 guestAccount.balances[loc] = (guestAccount.balances[loc] || 0) + game.commissionAmount;
                 didAccountUpdate = true;
-                // --- MODIFIED ---
                 logMessages.push(`Account TX: ${guestAccount.accountNumber} +${formatNumber(game.commissionAmount)} to ${loc} (Settle R/C)`);
-                // --- END MODIFICATION ---
-                // NEW: Log to central transaction history
                 saveTransaction({
                     accountNo: guestAccount.accountNumber,
                     type: 'Game R/C',
@@ -830,45 +1025,150 @@
             }
         }
 
-        // --- 4. Update Main Bank Balance ---
+        // Update Main Bank Balance
         const loc = game.location;
         if (!mainBankData.houseBalances) mainBankData.houseBalances = {};
         
         const houseStart = mainBankData.houseBalances[loc] || 0;
-        // This formula is now correct:
-        // houseStart + (money in) - (money out)
-        // + capital (from player)
-        // + revenue (house's net revenue, which includes the commission cost)
+        // Calculation: End = Start + Capital + Revenue
         const houseEnd = houseStart + game.capital + game.revenue;
         mainBankData.houseBalances[loc] = houseEnd;
         
-        // --- 5. Add to main bank activity log ---
         const ts = new Date().toLocaleString();
-        // This log needs to reflect the new formula
         const logMsg = `[${ts}] Game Settle (${game.accountNo} @ ${loc}): +${formatNumber(game.capital)} (Cap) +${formatNumber(game.revenue)} (Net Revenue) = Net ${houseEnd - houseStart >= 0 ? '+' : ''}${formatNumber(houseEnd - houseStart)}`;
         if (!mainBankData.activityLog) mainBankData.activityLog = []; 
         mainBankData.activityLog.unshift(logMsg);
-        // --- MODIFIED: Add a separate log for the settlement itself ---
         mainBankData.activityLog.unshift(`[${ts}] Game Settled: ${game.accountNo} @ ${game.location}. W/L: ${formatNumber(game.winLose)}`);
-        // --- END MODIFICATION ---
         mainBankData.activityLog = mainBankData.activityLog.slice(0, 50);
 
-        // --- 6. Save All Data ---
+        return didAccountUpdate;
+    }
+
+    function handleSettleSubmit(e) {
+        e.preventDefault();
+        let logMessages = [];
+
+        const gameIndex = allGameRecords.findIndex(g => g.id === currentModalGameId);
+        if (gameIndex === -1) return;
+
+        const game = allGameRecords[gameIndex];
+
+        // 1. Get Form Data
+        const finalCashoutInput = parseFloat(document.getElementById('settle-cashout-amount').value);
+        const totalRolling = parseFloat(document.getElementById('settle-rolling').value);
+        const cashoutDest = document.getElementById('settle-cashout-dest').value;
+        const rcDest = document.getElementById('settle-rc-dest').value;
+
+        // --- MODIFIED: PLAN X2 LOGIC ---
+        let didAccountUpdate = false;
+
+        if (game.style === 'Plan x2 Live') {
+            // Settle current "Live" game
+            const update1 = performSettlement(game, finalCashoutInput, totalRolling, cashoutDest, rcDest, logMessages);
+            if (update1) didAccountUpdate = true;
+
+            // Find partner "Under" game
+            const underGame = allGameRecords.find(g => 
+                g.style === 'Plan x2 Under' && 
+                g.accountNo === game.accountNo && 
+                g.status === 'active' &&
+                g.date === game.date &&
+                g.location === game.location
+            );
+
+            if (underGame) {
+                // --- SYNC LOGIC ---
+                // For Plan x2, the "Under" game should ideally mirror the "Live" game's *TOTAL* outcome.
+                // The `performSettlement` logic adds `finalCashoutInput` to `existingCashout`.
+                // If the Under game has NO advance (likely), we need to pass the *Full Total Cashout* of the Live game as the input.
+                // OR, if we treat them as separate inputs...
+                // Prompt says: "automatically getting the SAME amount of cashout".
+                // So, Total Cashout (Live) = Total Cashout (Under).
+                
+                const liveTotalCashout = game.cashout; // Updated in performSettlement above
+                const underExistingAdvance = underGame.cashout || 0;
+                
+                // Calculate the "final input" needed for Under game to reach the same total
+                const underFinalInput = liveTotalCashout - underExistingAdvance;
+                
+                const update2 = performSettlement(underGame, underFinalInput, totalRolling, cashoutDest, rcDest, logMessages);
+                if (update2) didAccountUpdate = true;
+                showNotification('Linked "Plan x2 Under" game settled automatically!', 'success');
+            } else {
+                showNotification('Warning: Could not find linked "Plan x2 Under" game.', 'error');
+            }
+        } else {
+            // Standard Settle
+            const update = performSettlement(game, finalCashoutInput, totalRolling, cashoutDest, rcDest, logMessages);
+            if (update) didAccountUpdate = true;
+        }
+        // --- END MODIFICATION ---
+
+        // 6. Save All Data
         let allSaved = true;
         if (!saveGameRecords()) allSaved = false;
-        // --- MODIFIED ---
         if (didAccountUpdate && !saveAccountData(logMessages.join(' | '))) allSaved = false; 
-        // --- END MODIFICATION ---
         if (!saveMainBankData()) allSaved = false; 
 
         if (allSaved) {
             showNotification('Game Settled Successfully!', 'success');
-            // addGlobalLog(...) was removed
+            lastSettledGameId = game.id;
             closeModal('settle-modal');
             renderTable(); 
+            openSummaryModal(game); // Open summary AFTER closing settle modal
         } else {
             showNotification('Error: Could not save all data. Please check console.');
         }
+    }
+
+    // --- NEW: Open Summary Modal ---
+    function openSummaryModal(game) {
+        // If Plan x2 Live, we might want to show summary for BOTH or just Live?
+        // Showing Live summary is usually enough as they mirror, but let's check.
+        
+        const content = document.getElementById('summary-content');
+        const existingCashout = (game.cashout || 0) - (game.settlementInfo?.finalCashoutInput || 0);
+        
+        content.innerHTML = `
+            <div class="summary-row">
+                <span class="summary-label">Game ID</span>
+                <span class="summary-value text-xs text-gray-400">${game.id}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Account</span>
+                <span class="summary-value">${game.accountName}</span>
+            </div>
+             <div class="summary-row">
+                <span class="summary-label">Capital (Buy In)</span>
+                <span class="summary-value">${formatNumber(game.capital)}</span>
+            </div>
+             <div class="summary-row">
+                <span class="summary-label">Advance Cashout</span>
+                <span class="summary-value">${formatNumber(existingCashout)}</span>
+            </div>
+             <div class="summary-row">
+                <span class="summary-label">Final Cashout</span>
+                <span class="summary-value">${formatNumber(game.settlementInfo?.finalCashoutInput || 0)}</span>
+            </div>
+            <div class="summary-row border-t border-gray-600 pt-1 mt-1">
+                <span class="summary-label font-bold text-white">Total Cashout</span>
+                <span class="summary-value font-bold text-white">${formatNumber(game.cashout)}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Win/Lose</span>
+                <span class="summary-value ${game.winLose >= 0 ? 'text-green-400' : 'text-red-400'}">${formatNumber(game.winLose)}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Commission</span>
+                <span class="summary-value">${formatNumber(game.commissionAmount)}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">Net Revenue</span>
+                <span class="summary-value summary-highlight">${formatNumber(game.revenue)}</span>
+            </div>
+        `;
+        
+        openModal('summary-modal');
     }
 
     // --- Void Game ---
@@ -1048,7 +1348,9 @@
     }
     function closeModal(modalId) {
         document.getElementById(modalId).style.display = 'none';
-        currentModalGameId = null;
+        if(modalId !== 'summary-modal') {
+            currentModalGameId = null;
+        }
     }
 
     // --- NEW: Send Modal Logic ---
@@ -1275,6 +1577,10 @@ This is Cage Betrnk ${game.location.toUpperCase()}. ❤️Thank you po!
         // Bind settle form
         document.getElementById('settle-form').addEventListener('submit', handleSettleSubmit);
 
+        // --- NEW: Bind Input Listeners for Live Preview ---
+        document.getElementById('settle-cashout-amount').addEventListener('input', updateLiveSettlementPreview);
+        document.getElementById('settle-rolling').addEventListener('input', updateLiveSettlementPreview);
+
         // --- NEW: Bind Send Modal Buttons ---
         document.getElementById('send-guest-btn').addEventListener('click', () => {
             const message = document.getElementById('guest-message-content').value;
@@ -1283,6 +1589,14 @@ This is Cage Betrnk ${game.location.toUpperCase()}. ❤️Thank you po!
         document.getElementById('send-company-btn').addEventListener('click', () => {
             const message = document.getElementById('company-message-content').value;
             sendToTelegram(message);
+        });
+        
+        // --- NEW: Bind Summary Modal Button ---
+        document.getElementById('summary-send-btn').addEventListener('click', () => {
+            closeModal('summary-modal');
+            if(lastSettledGameId) {
+                openSendModal(lastSettledGameId);
+            }
         });
         // --- END: Bind Send Modal Buttons ---
 

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Marker Bank</title>
+  <style>
+    :root{
+      --bg:#1e1e2f; --panel:#2e2e3e; --muted:#3b3b4f; --text:#fff; --sub:#aabfff;
+      --ok:#4CAF50; --bad:#f44336; --ink:#ddd; --line:#444; --chip:#666;
+    }
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}
+    .page{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+    nav{padding:18px;background:#232336;border-right:1px solid var(--line)}
+    nav h1{margin:0 0 12px 0;font-size:18px;color:#eaeaff}
+    nav button, nav a{display:block;width:100%;margin:6px 0;padding:12px;border:0;border-radius:8px;background:#444;color:#fff;cursor:pointer;text-align:left; text-decoration: none;}
+    nav button:hover,nav a:hover{background:#595959}
+    main{padding:22px 26px}
+    .grid{display:grid;gap:18px}
+    .card{background:var(--panel);border-radius:14px;padding:18px; margin-bottom: 18px;}
+    .card h2{margin:0 0 10px 0;font-size:18px}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border-bottom:1px solid var(--line);padding:10px;text-align:left}
+    .table tfoot td{font-weight:700}
+    .btn{padding:10px 12px;border:0;border-radius:8px;cursor:pointer; display:inline-block;}
+    .btn.primary{background:#3e63dd;color:#fff}
+    .btn.good{background:var(--ok);color:#fff}
+    .btn.bad{background:var(--bad);color:#fff}
+    .btn.ghost{background:#444;color:#fff}
+    .right{display: flex; justify-content:flex-end; gap: 10px;}
+    .sep{height:1px;background:var(--line);margin:12px 0}
+    .mono{font-family:monospace;}
+    input, select, textarea { background:#444; border:1px solid #666; color:#fff; padding:8px; border-radius:6px; width:100%; }
+    
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .modal { background-color: #2e2e3e; border-radius: 12px; width: min(500px, 90vw); padding: 24px; color: #fff; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <nav>
+    <h1>🏦 Marker Bank</h1>
+    <a href="DASHBOARD.HTML">← Back to Dashboard</a>
+    <a href="account2.html">← Go to Accounts</a>
+    <button id="refreshBtn">Refresh Data</button>
+  </nav>
+
+  <main>
+    <!-- Section 1: Active Marker Balance Sheet -->
+    <section class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>Active Marker Balances</h2>
+            <!-- NEW: Buttons Container -->
+            <div style="display: flex; gap: 10px;">
+                <button class="btn good" id="addCreditBtn">+ Add Credit Line</button>
+                <button class="btn ghost" id="exportBalancesBtn">Export Balance Sheet</button>
+            </div>
+        </div>
+        <div class="sep"></div>
+        <table class="table" id="balanceTable">
+            <thead>
+                <tr>
+                    <th>Account No.</th>
+                    <th>Name</th>
+                    <th>Agent</th>
+                    <th class="mono">Credit Line (Outstanding)</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3">Total Outstanding Markers</td>
+                    <td class="mono" id="totalOutstanding">₱0.00</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </section>
+
+    <!-- Section 2: Activity History -->
+    <section class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>Marker Activity History (Approver Log)</h2>
+            <button class="btn primary" id="exportHistoryBtn">Export History</button>
+        </div>
+        <div class="sep"></div>
+        <div style="max-height: 400px; overflow-y: auto;">
+            <table class="table" id="historyTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Account</th>
+                        <th>Type</th>
+                        <th class="mono">Amount</th>
+                        <th>Approver / Remarks</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </section>
+  </main>
+</div>
+
+<!-- Redemption Modal -->
+<div id="redeemModal" class="modal-overlay">
+    <div class="modal">
+        <h2 style="margin-top:0">Redeem Marker</h2>
+        <p id="redeemTarget" style="color:#ccc; margin-bottom:15px;"></p>
+        <form id="redeemForm">
+            <input type="hidden" id="redeemAccountId">
+            <div style="margin-bottom:10px;">
+                <label>Type</label>
+                <select id="redeemType">
+                    <option value="Full">Full Redemption</option>
+                    <option value="Partial">Partial Payment</option>
+                </select>
+            </div>
+            <div style="margin-bottom:10px;">
+                <label>Amount to Pay</label>
+                <input type="number" id="redeemAmount" step="0.01" required>
+            </div>
+            <div style="margin-bottom:10px;">
+                <label>Remarks / Payment Method</label>
+                <textarea id="redeemRemarks" rows="2" placeholder="e.g. Cash payment, Bank Transfer..." required></textarea>
+            </div>
+            <div class="right">
+                <button type="button" class="btn ghost" id="closeRedeemBtn">Cancel</button>
+                <button type="submit" class="btn good">Process Redemption</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- NEW: Add Credit Line Modal -->
+<div id="creditLineModal" class="modal-overlay">
+    <div class="modal">
+        <h2 style="margin-top:0">Issue Marker / Add Credit Line</h2>
+        <form id="creditLineForm">
+            <div style="margin-bottom:10px;">
+                <label>Select Account</label>
+                <select id="clAccountSelect" required>
+                    <option value="">-- Select Guest --</option>
+                </select>
+            </div>
+            <div style="margin-bottom:10px;">
+                <label>Credit Amount</label>
+                <input type="number" id="clAmount" required step="0.01" min="0" placeholder="0.00">
+            </div>
+            <div style="margin-bottom:10px;">
+                <label>Approver / Remarks</label>
+                <textarea id="clApprover" required rows="3" placeholder="Approved by..."></textarea>
+            </div>
+            <div class="right">
+                <button type="button" class="btn ghost" id="closeCreditLineBtn">Cancel</button>
+                <button type="submit" class="btn good">Issue Credit</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="toast" style="position:fixed;bottom:20px;right:20px;padding:12px 16px;border-radius:8px;background:#333;opacity:0;transition:.3s">Saved</div>
+
+<script>
+const ACCOUNT_KEY = 'account-dashboard:v1';
+const MARKER_KEY = 'markerbank:v1';
+let ACC = { accounts: [] };
+let MARKERS = { transactions: [] };
+
+const fmt = (n) => new Intl.NumberFormat('en-US', {style:'currency', currency:'PHP'}).format(n);
+const toast = (m) => {
+    const t = document.getElementById('toast'); t.textContent = m; t.style.opacity = 1;
+    setTimeout(() => t.style.opacity = 0, 2000);
+};
+
+async function loadData() {
+    const rawAcc = localStorage.getItem(ACCOUNT_KEY);
+    if (rawAcc) ACC = JSON.parse(rawAcc);
+    
+    const rawMark = localStorage.getItem(MARKER_KEY);
+    if (rawMark) MARKERS = JSON.parse(rawMark);
+    if (!MARKERS.transactions) MARKERS.transactions = [];
+}
+
+function render() {
+    // 1. Render Balances
+    const tbody = document.querySelector('#balanceTable tbody');
+    tbody.innerHTML = '';
+    let total = 0;
+    
+    // Filter accounts with credit line > 0
+    const activeAccounts = (ACC.accounts || []).filter(a => (a.creditLine || 0) > 0);
+    
+    if (activeAccounts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#777;">No active markers.</td></tr>';
+    }
+
+    activeAccounts.forEach(a => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${a.accountNumber}</td>
+            <td>${a.name}</td>
+            <td>${a.agent || '-'}</td>
+            <td class="mono" style="color:#ffb3b3;">${fmt(a.creditLine)}</td>
+            <td>
+                <button class="btn good" onclick="openRedeem('${a.id}')" style="padding:4px 8px; font-size:12px;">Redeem</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+        total += (a.creditLine || 0);
+    });
+    document.getElementById('totalOutstanding').textContent = fmt(total);
+
+    // 2. Render History
+    const hBody = document.querySelector('#historyTable tbody');
+    hBody.innerHTML = '';
+    // Sort new to old
+    const sortedHistory = [...MARKERS.transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    if (sortedHistory.length === 0) {
+        hBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#777;">No activity history.</td></tr>';
+    }
+
+    sortedHistory.forEach(tx => {
+        const row = document.createElement('tr');
+        // Issue = Red (Debt Added), Redeem = Green (Debt Paid)
+        const isIssue = tx.type === 'Issue';
+        const colorClass = isIssue ? '#f44336' : '#4CAF50'; 
+        const dateStr = new Date(tx.date).toLocaleString();
+        
+        row.innerHTML = `
+            <td style="font-size:12px; color:#aaa;">${dateStr}</td>
+            <td>${tx.accountNumber} (${tx.name})</td>
+            <td><span style="color:${colorClass}">${tx.type}</span></td>
+            <td class="mono">${fmt(tx.amount)}</td>
+            <td>${tx.remarks}</td>
+        `;
+        hBody.appendChild(row);
+    });
+}
+
+// --- Redemption Logic ---
+window.openRedeem = (id) => {
+    const acc = ACC.accounts.find(a => a.id === id);
+    if (!acc) return;
+    
+    document.getElementById('redeemAccountId').value = id;
+    document.getElementById('redeemTarget').textContent = `Redeeming for: ${acc.name} (Current Debt: ${fmt(acc.creditLine)})`;
+    document.getElementById('redeemAmount').value = acc.creditLine; // Default to full
+    document.getElementById('redeemAmount').max = acc.creditLine;
+    document.getElementById('redeemRemarks').value = '';
+    
+    document.getElementById('redeemModal').style.display = 'flex';
+};
+
+document.getElementById('closeRedeemBtn').addEventListener('click', () => {
+    document.getElementById('redeemModal').style.display = 'none';
+});
+
+document.getElementById('redeemForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = document.getElementById('redeemAccountId').value;
+    const amount = parseFloat(document.getElementById('redeemAmount').value);
+    const type = document.getElementById('redeemType').value; // Full or Partial
+    const remarks = document.getElementById('redeemRemarks').value;
+    
+    if (amount <= 0) { toast('Invalid amount'); return; }
+
+    const accIndex = ACC.accounts.findIndex(a => a.id === id);
+    if (accIndex === -1) return;
+    
+    const acc = ACC.accounts[accIndex];
+    if (amount > acc.creditLine) {
+        alert('Cannot redeem more than the outstanding balance.');
+        return;
+    }
+
+    // 1. Update Account Balance
+    acc.creditLine -= amount;
+    // If full redemption, ensure 0 clean
+    if (acc.creditLine < 0.01) acc.creditLine = 0;
+    
+    // Save Account Data
+    localStorage.setItem(ACCOUNT_KEY, JSON.stringify(ACC));
+    
+    // 2. Log Transaction
+    MARKERS.transactions.push({
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        accountId: acc.id,
+        accountNumber: acc.accountNumber,
+        name: acc.name,
+        type: 'Redeem', // Or use 'Partial' if you want to distinguish
+        amount: amount,
+        remarks: `[${type}] ${remarks}`
+    });
+    localStorage.setItem(MARKER_KEY, JSON.stringify(MARKERS));
+    
+    toast('Redemption Processed');
+    document.getElementById('redeemModal').style.display = 'none';
+    render();
+});
+
+// --- NEW: Add Credit Line Logic ---
+document.getElementById('addCreditBtn').addEventListener('click', () => {
+    const select = document.getElementById('clAccountSelect');
+    select.innerHTML = '<option value="">-- Select Guest --</option>';
+    
+    // Populate dropdown
+    ACC.accounts.forEach(acc => {
+        const opt = document.createElement('option');
+        opt.value = acc.id;
+        opt.textContent = `${acc.accountNumber} - ${acc.name}`;
+        select.appendChild(opt);
+    });
+    
+    document.getElementById('clAmount').value = '';
+    document.getElementById('clApprover').value = '';
+    document.getElementById('creditLineModal').style.display = 'flex';
+});
+
+document.getElementById('closeCreditLineBtn').addEventListener('click', () => {
+    document.getElementById('creditLineModal').style.display = 'none';
+});
+
+document.getElementById('creditLineForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const accId = document.getElementById('clAccountSelect').value;
+    const amount = parseFloat(document.getElementById('clAmount').value);
+    const remarks = document.getElementById('clApprover').value;
+
+    if (!accId || !amount || amount <= 0 || !remarks) {
+        toast('Please fill all fields correctly.');
+        return;
+    }
+
+    const accountIndex = ACC.accounts.findIndex(a => a.id === accId);
+    if (accountIndex === -1) return;
+
+    // 1. Update Account Credit Line
+    const acc = ACC.accounts[accountIndex];
+    const oldLimit = acc.creditLine || 0;
+    acc.creditLine = oldLimit + amount;
+
+    // 2. Save Account State
+    localStorage.setItem(ACCOUNT_KEY, JSON.stringify(ACC));
+
+    // 3. Save to Marker Bank History
+    MARKERS.transactions.push({
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        accountId: acc.id,
+        accountNumber: acc.accountNumber,
+        name: acc.name,
+        type: 'Issue',
+        amount: amount,
+        remarks: remarks
+    });
+    localStorage.setItem(MARKER_KEY, JSON.stringify(MARKERS));
+
+    toast(`Credit Added to ${acc.name}`);
+    document.getElementById('creditLineModal').style.display = 'none';
+    render();
+});
+
+// --- Export Logic ---
+const exportCSV = (filename, rows) => {
+    let csv = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csv));
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+document.getElementById('exportBalancesBtn').addEventListener('click', () => {
+    const activeAccounts = (ACC.accounts || []).filter(a => (a.creditLine || 0) > 0);
+    const rows = [["Account No", "Name", "Agent", "Credit Line"]];
+    activeAccounts.forEach(a => rows.push([a.accountNumber, a.name, a.agent, a.creditLine]));
+    exportCSV('marker_balance_sheet.csv', rows);
+});
+
+document.getElementById('exportHistoryBtn').addEventListener('click', () => {
+    const rows = [["Date", "Account No", "Name", "Type", "Amount", "Remarks"]];
+    MARKERS.transactions.forEach(t => rows.push([t.date, t.accountNumber, t.name, t.type, t.amount, `"${t.remarks}"`]));
+    exportCSV('marker_history.csv', rows);
+});
+
+document.getElementById('refreshBtn').addEventListener('click', () => {
+    loadData().then(render);
+    toast('Refreshed');
+});
+
+// Boot
+loadData().then(render);
+
+// Storage Sync
+window.addEventListener('storage', (e) => {
+    if (e.key === ACCOUNT_KEY || e.key === MARKER_KEY) {
+        loadData().then(render);
+    }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forex Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #1e1e2f; color: white; }
+        .card { background-color: #2e2e3e; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .input-dark { background-color: #444; border: 1px solid #666; color: white; padding: 8px; border-radius: 6px; width: 100%; }
+        .btn { padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background-color: #3b82f6; color: white; }
+        .btn-success { background-color: #22c55e; color: white; }
+        .btn-danger { background-color: #ef4444; color: white; }
+        .btn-secondary { background-color: #6b7280; color: white; }
+        
+        /* Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 40px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #3b82f6; }
+        input:checked + .slider:before { transform: translateX(16px); }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 50; }
+        .modal-content { background: #2e2e3e; padding: 24px; border-radius: 12px; width: 100%; max-width: 500px; }
+    </style>
+</head>
+<body class="p-6">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold">Forex Management</h1>
+            <p class="text-gray-400">Exchange, Rates, and Transactions</p>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="location.href='DASHBOARD.HTML'" class="btn btn-secondary">Back to Dashboard</button>
+            <button onclick="location.href='mainbank.html'" class="btn btn-secondary">Main Bank</button>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Column: Rates & Inventory -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Currency Rates Card -->
+            <div class="card">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Currency Rates & Inventory</h2>
+                    <button onclick="openAddCurrencyModal()" class="btn btn-primary text-sm">+ Add Currency</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-gray-600 text-gray-400 text-sm">
+                                <th class="p-3">Currency</th>
+                                <th class="p-3">Rate (to PHP)</th>
+                                <th class="p-3">Inventory</th>
+                                <th class="p-3 text-center">Hold Rate?</th>
+                                <th class="p-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ratesTableBody">
+                            <!-- JS will populate this -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            <div class="card">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Transaction History</h2>
+                    <button onclick="exportForexHistory()" class="btn btn-secondary text-sm">Export CSV</button>
+                </div>
+                <div class="overflow-x-auto max-h-96">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="bg-gray-700 text-gray-300">
+                                <th class="p-3">Date</th>
+                                <th class="p-3">Type</th>
+                                <th class="p-3">Guest</th>
+                                <th class="p-3">Currency</th>
+                                <th class="p-3">Amount</th>
+                                <th class="p-3">Rate</th>
+                                <th class="p-3">PHP Equiv</th>
+                                <th class="p-3">Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="divide-y divide-gray-700"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Operations -->
+        <div class="space-y-6">
+            
+            <!-- Exchange Calculator -->
+            <div class="card border border-blue-600">
+                <h2 class="text-xl font-bold mb-4 text-blue-400">New Exchange / Buy-In</h2>
+                <form id="exchangeForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Transaction Type</label>
+                        <select id="txType" class="input-dark" onchange="toggleTxFields()">
+                            <option value="exchange">Exchange to Cash (PHP)</option>
+                            <option value="buyin">Direct Buy-In (Chips)</option>
+                            <option value="deposit">Deposit to Account</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Guest Account (Optional)</label>
+                        <input type="text" id="txGuest" class="input-dark" placeholder="Enter Account No. (e.g. BSM001)">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Currency</label>
+                            <select id="txCurrency" class="input-dark" onchange="updateCalc()">
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Rate</label>
+                            <input type="number" id="txRate" class="input-dark" step="0.0001" readonly>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Foreign Amount</label>
+                        <input type="number" id="txAmount" class="input-dark" step="0.01" placeholder="0.00" oninput="updateCalc()">
+                    </div>
+
+                    <div class="p-3 bg-gray-700 rounded-lg">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>Total PHP:</span>
+                            <span id="txTotalPHP" class="font-bold text-lg text-green-400">₱0.00</span>
+                        </div>
+                    </div>
+
+                    <div id="buyInFields" class="hidden space-y-4 p-3 border border-gray-600 rounded">
+                        <p class="text-xs text-yellow-400">This will create an active game record.</p>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Location</label>
+                            <select id="txLocation" class="input-dark">
+                                <option value="cod">COD</option>
+                                <option value="maxim">Maxim</option>
+                                <option value="solaire">Solaire</option>
+                                <option value="okada">Okada</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-full py-3 text-lg">Process Transaction</button>
+                </form>
+            </div>
+
+            <!-- Redemption / Sell Back -->
+            <div class="card border border-green-600">
+                <h2 class="text-xl font-bold mb-4 text-green-400">Redeem / Sell Forex</h2>
+                <p class="text-xs text-gray-400 mb-4">Guest returns PHP/Chips to get Forex back.</p>
+                <button onclick="openRedeemModal()" class="btn btn-success w-full">Open Redemption Form</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Add Currency Modal -->
+    <div id="addCurrencyModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">Add New Currency</h3>
+            <input type="text" id="newCurrencyCode" class="input-dark mb-4" placeholder="Code (e.g. AUD, SGD)">
+            <input type="number" id="newCurrencyRate" class="input-dark mb-4" placeholder="Initial Rate (to PHP)">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal('addCurrencyModal')" class="btn btn-secondary">Cancel</button>
+                <button onclick="addNewCurrency()" class="btn btn-primary">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Redeem Modal -->
+    <div id="redeemModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold mb-4">Redeem Forex</h3>
+            <form id="redeemForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-400">Currency to Return</label>
+                    <select id="redeemCurrency" class="input-dark"></select>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400">Amount (Foreign)</label>
+                    <input type="number" id="redeemAmount" class="input-dark" step="0.01" required>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400">Type</label>
+                    <select id="redeemType" class="input-dark">
+                        <option value="Full">Full Redemption</option>
+                        <option value="Partial">Partial Redemption</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400">Payment From Guest</label>
+                    <input type="text" value="PHP Cash / Chips" readonly class="input-dark text-gray-500">
+                </div>
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" onclick="closeModal('redeemModal')" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-success">Process Redemption</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300">
+        Action Successful!
+    </div>
+
+<script>
+    // --- Constants & State ---
+    const MAINBANK_KEY = 'mainbank:v1';
+    const ACCOUNT_KEY = 'account-dashboard:v1';
+    const FOREX_KEY = 'forex-data:v1'; // Stores logs & specific settings
+
+    let MB = {};
+    let ACCOUNTS = [];
+    let FX_LOGS = [];
+
+    // --- Initialization ---
+    async function init() {
+        await loadData();
+        renderRatesTable();
+        renderHistoryTable();
+        populateDropdowns();
+    }
+
+    async function loadData() {
+        const mbRaw = localStorage.getItem(MAINBANK_KEY);
+        MB = mbRaw ? JSON.parse(mbRaw) : { forex: [], activityLog: [] };
+        
+        // Ensure forex array structure in MainBank
+        if (!MB.forex || !Array.isArray(MB.forex)) {
+            // Default fallback
+            MB.forex = [
+                { currency: 'JPY', amount: 0, rate: 0.37, hold: false },
+                { currency: 'KRW', amount: 0, rate: 0.041, hold: false },
+                { currency: 'USD', amount: 0, rate: 56.50, hold: false },
+                { currency: 'HKD', amount: 0, rate: 7.20, hold: false }
+            ];
+        }
+        
+        // Ensure rate and hold properties exist (migration)
+        MB.forex.forEach(f => {
+            if (f.rate === undefined) f.rate = 1.0;
+            if (f.hold === undefined) f.hold = false;
+        });
+
+        const accRaw = localStorage.getItem(ACCOUNT_KEY);
+        const accData = accRaw ? JSON.parse(accRaw) : { accounts: [] };
+        ACCOUNTS = accData.accounts || [];
+
+        const fxRaw = localStorage.getItem(FOREX_KEY);
+        FX_LOGS = fxRaw ? JSON.parse(fxRaw) : [];
+    }
+
+    function saveData() {
+        localStorage.setItem(MAINBANK_KEY, JSON.stringify(MB));
+        localStorage.setItem(FOREX_KEY, JSON.stringify(FX_LOGS));
+        // We might update Accounts too if deposit happens
+        const accState = { accounts: ACCOUNTS, locations: ['cod','maxim','solaire','okada','other'] }; // Simplified
+        // Better to reload full account state before saving if modifying accounts heavily, 
+        // but for this snippet we assume single-user flow mostly.
+    }
+
+    // --- Rendering ---
+    function renderRatesTable() {
+        const tbody = document.getElementById('ratesTableBody');
+        tbody.innerHTML = '';
+
+        MB.forex.forEach((fx, index) => {
+            const tr = document.createElement('tr');
+            tr.className = "border-b border-gray-700 hover:bg-gray-800";
+            tr.innerHTML = `
+                <td class="p-3 font-bold text-blue-300">${fx.currency}</td>
+                <td class="p-3">
+                    <input type="number" step="0.0001" value="${fx.rate}" 
+                        class="bg-transparent border border-gray-600 rounded px-2 py-1 w-24 text-right focus:border-blue-500 outline-none"
+                        onchange="updateRate(${index}, this.value)">
+                </td>
+                <td class="p-3 font-mono text-green-400">${formatNumber(fx.amount)}</td>
+                <td class="p-3 text-center">
+                    <label class="switch">
+                        <input type="checkbox" ${fx.hold ? 'checked' : ''} onchange="toggleHold(${index}, this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </td>
+                <td class="p-3 text-right">
+                    <button onclick="deleteCurrency(${index})" class="text-red-400 hover:text-red-200 text-xs underline">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderHistoryTable() {
+        const tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = '';
+        
+        // Sort newest first
+        const sortedLogs = [...FX_LOGS].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        sortedLogs.forEach(log => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="p-3 text-xs text-gray-400">${new Date(log.date).toLocaleString()}</td>
+                <td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${getTypeBadge(log.type)}">${log.type.toUpperCase()}</span></td>
+                <td class="p-3">${log.guest || '-'}</td>
+                <td class="p-3 font-bold">${log.currency}</td>
+                <td class="p-3 font-mono">${formatNumber(log.amount)}</td>
+                <td class="p-3 text-gray-400">${log.rate}</td>
+                <td class="p-3 font-mono text-blue-300">₱${formatNumber(log.phpTotal)}</td>
+                <td class="p-3 text-xs text-gray-400">${log.remarks || ''}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+    
+    function getTypeBadge(type) {
+        if(type === 'exchange') return 'bg-blue-900 text-blue-200';
+        if(type === 'buyin') return 'bg-purple-900 text-purple-200';
+        if(type === 'redeem') return 'bg-green-900 text-green-200';
+        return 'bg-gray-700';
+    }
+
+    function populateDropdowns() {
+        const selects = [document.getElementById('txCurrency'), document.getElementById('redeemCurrency')];
+        selects.forEach(sel => {
+            if(!sel) return;
+            const currentVal = sel.value;
+            sel.innerHTML = '';
+            MB.forex.forEach(fx => {
+                const opt = document.createElement('option');
+                opt.value = fx.currency;
+                opt.textContent = fx.currency;
+                sel.appendChild(opt);
+            });
+            if (currentVal) sel.value = currentVal;
+        });
+        // Trigger update for calculator
+        updateCalc();
+    }
+
+    // --- Logic: Rates & Inventory ---
+    function updateRate(index, newRate) {
+        MB.forex[index].rate = parseFloat(newRate) || 0;
+        saveData();
+        showToast('Rate Updated');
+        updateCalc(); // Update calculator if currency matches
+    }
+
+    function toggleHold(index, isHeld) {
+        MB.forex[index].hold = isHeld;
+        saveData();
+        showToast(isHeld ? 'Rate Held' : 'Rate Released');
+    }
+
+    function addNewCurrency() {
+        const code = document.getElementById('newCurrencyCode').value.toUpperCase().trim();
+        const rate = parseFloat(document.getElementById('newCurrencyRate').value);
+        
+        if (!code || !rate) return alert('Please enter valid code and rate');
+        if (MB.forex.find(f => f.currency === code)) return alert('Currency exists');
+
+        MB.forex.push({ currency: code, rate: rate, amount: 0, hold: false });
+        saveData();
+        closeModal('addCurrencyModal');
+        renderRatesTable();
+        populateDropdowns();
+        showToast('Currency Added');
+    }
+
+    function deleteCurrency(index) {
+        if (!confirm('Delete this currency? Inventory will be lost.')) return;
+        MB.forex.splice(index, 1);
+        saveData();
+        renderRatesTable();
+        populateDropdowns();
+    }
+
+    // --- Logic: Calculator ---
+    function toggleTxFields() {
+        const type = document.getElementById('txType').value;
+        const buyInDiv = document.getElementById('buyInFields');
+        if (type === 'buyin') {
+            buyInDiv.classList.remove('hidden');
+        } else {
+            buyInDiv.classList.add('hidden');
+        }
+    }
+
+    function updateCalc() {
+        const currencyCode = document.getElementById('txCurrency').value;
+        if (!currencyCode) return;
+
+        const fxData = MB.forex.find(f => f.currency === currencyCode);
+        const rateInput = document.getElementById('txRate');
+        
+        if (fxData) {
+            rateInput.value = fxData.rate;
+            const amount = parseFloat(document.getElementById('txAmount').value) || 0;
+            const total = amount * fxData.rate;
+            document.getElementById('txTotalPHP').textContent = '₱' + formatNumber(total);
+        }
+    }
+
+    // --- Logic: Transactions ---
+    document.getElementById('exchangeForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const type = document.getElementById('txType').value;
+        const currency = document.getElementById('txCurrency').value;
+        const amount = parseFloat(document.getElementById('txAmount').value);
+        const rate = parseFloat(document.getElementById('txRate').value);
+        const guest = document.getElementById('txGuest').value.trim();
+        
+        if (!amount || amount <= 0) return alert('Invalid Amount');
+
+        // 1. Update Inventory (Add Forex to House)
+        const fxIndex = MB.forex.findIndex(f => f.currency === currency);
+        if (fxIndex > -1) {
+            MB.forex[fxIndex].amount += amount;
+        }
+
+        const phpTotal = amount * rate;
+
+        // 2. Log Transaction
+        const log = {
+            id: Date.now(),
+            date: new Date().toISOString(),
+            type: type,
+            currency: currency,
+            amount: amount,
+            rate: rate,
+            phpTotal: phpTotal,
+            guest: guest,
+            remarks: type === 'buyin' ? `Location: ${document.getElementById('txLocation').value}` : 'Exchange'
+        };
+        FX_LOGS.push(log);
+
+        // 3. Specific Logic
+        if (type === 'buyin') {
+             // Here we would ideally push to Game Records. 
+             // For simplicity in this standalone page, we log it.
+             // In a real integration, we'd write to gamerecord:v1 here too.
+             logToGameRecords(guest, amount, currency, rate, phpTotal);
+        }
+
+        saveData();
+        renderRatesTable();
+        renderHistoryTable();
+        document.getElementById('txAmount').value = '';
+        updateCalc();
+        showToast('Transaction Processed');
+    });
+
+    document.getElementById('redeemForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const currency = document.getElementById('redeemCurrency').value;
+        const amount = parseFloat(document.getElementById('redeemAmount').value);
+        const type = document.getElementById('redeemType').value;
+        
+        const fxIndex = MB.forex.findIndex(f => f.currency === currency);
+        if (fxIndex === -1) return;
+        
+        if (amount > MB.forex[fxIndex].amount) {
+            return alert('Insufficient Forex Inventory to redeem!');
+        }
+
+        // Deduct Inventory
+        MB.forex[fxIndex].amount -= amount;
+
+        // Log
+        const log = {
+            id: Date.now(),
+            date: new Date().toISOString(),
+            type: 'redeem',
+            currency: currency,
+            amount: -amount, // Negative to show outflow in some contexts, but visually we handle it
+            rate: MB.forex[fxIndex].rate,
+            phpTotal: amount * MB.forex[fxIndex].rate, // Value returned
+            guest: 'Walk-in/Guest',
+            remarks: `${type} Redemption`
+        };
+        FX_LOGS.push(log);
+
+        saveData();
+        renderRatesTable();
+        renderHistoryTable();
+        closeModal('redeemModal');
+        showToast('Redemption Successful');
+    });
+    
+    // Helper: Log to Game Record (Simulated Integration)
+    function logToGameRecords(guest, fxAmount, currency, rate, phpAmount) {
+        // This ensures the buy-in appears in gamerecord.html
+        const GAME_KEY = 'gamerecord:v1';
+        const rawGames = localStorage.getItem(GAME_KEY);
+        const games = rawGames ? JSON.parse(rawGames) : [];
+        
+        const newGame = {
+            id: `game-${Date.now()}`,
+            date: new Date().toISOString().slice(0, 10),
+            time: new Date().toLocaleTimeString(),
+            accountNo: guest || 'Walk-In',
+            accountName: guest ? 'Linked Account' : 'Walk-In',
+            status: 'active',
+            capital: phpAmount, // Converted amount is the buy-in capital
+            location: document.getElementById('txLocation').value,
+            style: 'Forex Buy-In',
+            remarks: `Forex: ${fxAmount} ${currency} @ ${rate}`
+        };
+        
+        games.push(newGame);
+        localStorage.setItem(GAME_KEY, JSON.stringify(games));
+    }
+
+    // --- Utils ---
+    function formatNumber(num) {
+        return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.remove('translate-y-20', 'opacity-0');
+        setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 2000);
+    }
+
+    function openAddCurrencyModal() { document.getElementById('addCurrencyModal').style.display = 'flex'; }
+    function openRedeemModal() { 
+        populateDropdowns();
+        document.getElementById('redeemModal').style.display = 'flex'; 
+    }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function exportForexHistory() {
+        let csv = "Date,Type,Guest,Currency,Amount,Rate,PHP Total,Remarks\n";
+        FX_LOGS.forEach(row => {
+            csv += `${new Date(row.date).toLocaleString()},${row.type},${row.guest},${row.currency},${row.amount},${row.rate},${row.phpTotal},"${row.remarks}"\n`;
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `forex_history_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    // Boot
+    init();
+
+</script>
+</body>
+</html>

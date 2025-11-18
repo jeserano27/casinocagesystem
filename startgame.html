@@ -700,7 +700,7 @@
             const allGames = raw ? JSON.parse(raw) : [];
             
             const newGame = {
-                id: `game-${new Date().getTime()}`,
+                id: `game-${new Date().getTime()}-${Math.random().toString(36).substr(2, 5)}`, // Ensure unique ID even if called rapidly
                 date: new Date().toISOString().slice(0, 10),
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 status: 'active',
@@ -864,7 +864,16 @@
         document.getElementById('confirm-payment').textContent = formData.paymentType.charAt(0).toUpperCase() + formData.paymentType.slice(1) + (formData.paymentType === 'forex' ? ` (${formData.forexType.toUpperCase()})` : '');
         document.getElementById('confirm-amount').textContent = formatCurrency(formData.amount);
         document.getElementById('confirm-location').textContent = formData.location.charAt(0).toUpperCase() + formData.location.slice(1);
-        document.getElementById('confirm-style').textContent = formData.style;
+        
+        // --- MODIFIED: Check for Plan x2 and update display ---
+        if (formData.style === 'Plan x2') {
+            const splitAmount = formData.amount / 2;
+            document.getElementById('confirm-style').innerHTML = `Plan x2 <br><span class="text-sm text-gray-400">Live: ${formatCurrency(splitAmount)}<br>Under: ${formatCurrency(splitAmount)}</span>`;
+        } else {
+            document.getElementById('confirm-style').textContent = formData.style;
+        }
+        // --- END MODIFICATION ---
+        
         document.getElementById('confirm-tl').textContent = formData.tl;
         document.getElementById('confirm-commission').textContent = `${formData.commissionRate}%`;
         document.getElementById('confirm-share').textContent = `${formData.shareRate}%`;
@@ -899,22 +908,58 @@
         }
         
         // 2. Save the game record
-        const gameData = {
+        const baseGameData = {
             accountNo: currentAccount.accountNumber,
             accountName: currentAccount.name,
             agent: currentAccount.agent,
             paymentType: formData.paymentType,
-            capital: formData.amount,
-            style: formData.style,
             location: formData.location,
             tag: formData.tag,
             commissionRate: formData.commissionRate,
-            revenueRateShare: formData.shareRate,
             tl: formData.tl,
         };
         
-        if (!saveGameRecord(gameData)) {
-            showNotification('Error: Could not save game record. Aborting.');
+        let success = true;
+
+        // Check for Plan x2
+        if (formData.style === 'Plan x2') {
+            const splitAmount = formData.amount / 2;
+
+            // Game 1: Plan x2 Live
+            const game1 = {
+                ...baseGameData,
+                capital: splitAmount,
+                style: 'Plan x2 Live',
+                revenueRateShare: formData.shareRate // Normal share
+            };
+
+            // Game 2: Plan x2 Under
+            const game2 = {
+                ...baseGameData,
+                capital: splitAmount,
+                style: 'Plan x2 Under',
+                revenueRateShare: 100 // 100% share for Under game
+            };
+
+            if (!saveGameRecord(game1) || !saveGameRecord(game2)) {
+                success = false;
+            }
+
+        } else {
+            // Standard Single Game
+            const gameData = {
+                ...baseGameData,
+                capital: formData.amount,
+                style: formData.style,
+                revenueRateShare: formData.shareRate
+            };
+            if (!saveGameRecord(gameData)) {
+                success = false;
+            }
+        }
+        
+        if (!success) {
+            showNotification('Error: Could not save game record(s). Aborting.');
             // Rollback account debit if it happened
             if (accountUpdated) {
                 currentAccount.balances[formData.location] += formData.amount;
@@ -973,6 +1018,14 @@
 
         const agent = currentAccount.agent || 'N/A';
         
+        // MODIFIED: Check for Plan x2 and update style display
+        let styleDisplay = data.style;
+        if (data.style === 'Plan x2') {
+            const split = formatNumber(data.amount / 2);
+            styleDisplay = `Plan x2\n(Plan x2 Live: ${split})\n(Plan x2 Under: ${split})`;
+        }
+        // --- END MODIFICATION ---
+        
         // MODIFIED: Matched your exact format
         return `
 ${date}
@@ -981,7 +1034,7 @@ ACCOUNT # : ${currentAccount.accountNumber}
 NAME : ${currentAccount.name}
 AGENT: ${agent}
 BUY IN:  ${formatNumber(data.amount)}
-STYLE: ${data.style}
+STYLE: ${styleDisplay}
 LOCATION: (${data.location.toUpperCase()})
 BETRNKSHARE:${data.shareRate}%
 R/C:${data.commissionRate}%
@@ -1028,6 +1081,14 @@ T/L:${data.tl}
         if (showMarker) {
             markerLine = `-OUTSTANDING MARKER: ${formatNumber(currentAccount.creditLine || 0)}\n`;
         }
+        
+        // MODIFIED: Plan x2 split display in transaction line
+        let transactionLine = `● BUY IN GAME ${data.style} #1  -${formatNumber(data.amount)} (${ts})`;
+        if (data.style === 'Plan x2') {
+            const split = formatNumber(data.amount / 2);
+            transactionLine = `● BUY IN GAME Plan x2  -${formatNumber(data.amount)} (${ts})\n   (Plan x2 Live: ${split} | Plan x2 Under: ${split})`;
+        }
+        // --- END MODIFICATION ---
 
         // MODIFIED: Matched your exact format
         return `
@@ -1036,7 +1097,7 @@ T/L:${data.tl}
 【YOUR PREVIOUS BALANCE: ${formatNumber(startBalance)}】
 ———————————————————————————
 ● CASH WITHDRAWAL  -${formatNumber(data.amount)} (${ts})
-● BUY IN GAME ${data.style} #1  -${formatNumber(data.amount)} (${ts})
+${transactionLine}
 ———————————————————————————
 【TOTAL BALANCE: ${formatNumber(endBalance)}】
 -${locUpper} BALANCE:${formatNumber(endBalance)}
